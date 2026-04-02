@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: 245 130 32; /* #F58220 */
+  --primary-foreground: 255 255 255;
+  --secondary: 15 23 42; /* Slate 900 */
+  --secondary-foreground: 255 255 255;
+  --background: 255 255 255;
+  --foreground: 15 23 42;
+  --muted: 241 245 249;
+  --muted-foreground: 100 116 139;
+  --accent: 249 115 22; /* Orange 500 */
+  --accent-foreground: 15 23 42;
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --border: 226 232 240;
+  --input: 226 232 240;
+  --ring: 245 130 32;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 15 23 42;
+  --foreground: 255 255 255;
+  --muted: 30 41 59;
+  --muted-foreground: 148 163 184;
+  --accent: 245 130 32;
+  --accent-foreground: 255 255 255;
+  --border: 30 41 59;
+  --input: 30 41 59;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(245, 130, 32, 0.2);
+    border-radius: 20px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+    transition: all 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(245, 130, 32, 0.6);
+  }
+
+  .dark-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .dark-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(245, 130, 32, 0.8);
+    box-shadow: 0 0 10px rgba(245, 130, 32, 0.2);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-[#F58220] text-white font-bold py-3 px-6 rounded-xl hover:bg-[#E06D10] transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/20;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+
+  .dark .glass-card {
+    @apply bg-slate-900/80 border-slate-800/50;
+  }
+}
