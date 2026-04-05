@@ -24,7 +24,7 @@ interface OperationsManualProps {
   themeColor?: string;
 }
 
-export function OperationsManual({ themeColor = '#10b981' }: OperationsManualProps) {
+export function OperationsManual({ themeColor = '#f97316' }: OperationsManualProps) {
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
     const margin = 20;
@@ -308,7 +308,7 @@ function ProtocolStep({ num, title, quote, action }: { num: string, title: strin
           "{quote}"
         </div>
         <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-black text-zinc-400">
-          <ArrowRight className="w-3 h-3 md:w-4 md:h-4 shrink-0" style={{ color: '#10b981' }} />
+          <ArrowRight className="w-3 h-3 md:w-4 md:h-4 shrink-0" style={{ color: '#f97316' }} />
           <span className="uppercase tracking-[0.15em] md:tracking-widest">{action}</span>
         </div>
       </div>

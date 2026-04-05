@@ -29,7 +29,7 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
   const [quotationAccepted, setQuotationAccepted] = React.useState(false);
   const [showInspectionReview, setShowInspectionReview] = React.useState(false);
 
-  const primaryColor = settings?.theme_menu_highlight || '#10b981';
+  const primaryColor = settings?.theme_menu_highlight || '#f97316';
 
   const safeFormatDate = (dateStr: string | undefined | null) => {
     try {
@@ -145,7 +145,7 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
       </div>
     );
   }
-  const primaryBg = primaryColor.startsWith('#') && primaryColor.length === 7 ? `${primaryColor}15` : 'rgba(16, 185, 129, 0.1)';
+  const primaryBg = primaryColor.startsWith('#') && primaryColor.length === 7 ? `${primaryColor}15` : 'rgba(249, 115, 22, 0.1)';
 
   const displaySteps = [
     'Ingreso',

@@ -28,6 +28,10 @@ import { SalaVentas } from './components/SalaVentas';
 import { AIConsultant } from './components/AIConsultant';
 import { Garantias } from './components/Garantias';
 import { MessagesSettings } from './components/MessagesSettings';
+import { LandingEditor } from './components/LandingEditor';
+import { LiveEditOverlay } from './components/LiveEditOverlay';
+import { LandingPageConfig } from './types';
+
 
 type ViewState = 'landing' | 'customer' | 'dashboard';
 
@@ -62,6 +66,13 @@ export default function App() {
   const [currentCustomerTicket, setCurrentCustomerTicket] = useState<Ticket | null>(null);
   const [currentCustomerTickets, setCurrentCustomerTickets] = useState<Ticket[]>([]);
   const [currentCustomerReminder, setCurrentCustomerReminder] = useState<Reminder | null>(null);
+
+  // Live Edit Overlay state
+  const [liveEditState, setLiveEditState] = useState<{
+    cfg: LandingPageConfig;
+    setCfg: (cfg: LandingPageConfig) => void;
+  } | null>(null);
+
 
   const [searchTerm, setSearchTerm] = useState('');
   const [viewDate, setViewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -105,14 +116,14 @@ export default function App() {
     if (slug) {
       fetchPublicSettingsBySlug(slug).then(data => {
         setPublicBranding(data || {
-          theme_menu_highlight: '#10b981',
+          theme_menu_highlight: '#f97316',
           theme_menu_text: '#34d399',
           workshop_name: 'Lubricentro Vespucio'
         });
       }).catch(err => {
         console.error('Error fetching public branding:', err);
         setPublicBranding({
-          theme_menu_highlight: '#10b981',
+          theme_menu_highlight: '#f97316',
           theme_menu_text: '#34d399',
           workshop_name: 'Lubricentro Vespucio'
         });
@@ -460,6 +471,26 @@ export default function App() {
             tickets={tickets}
           />
         </div>
+      )}
+
+      {activeTab === 'landing_editor' && (
+        <LandingEditor
+          settings={settings}
+          onUpdate={updateSettings}
+          onLiveEdit={(cfg, setCfg) => setLiveEditState({ cfg, setCfg })}
+          onClose={() => setActiveTab('settings')}
+        />
+      )}
+
+      {/* Live Edit Overlay — full screen, portal-like */}
+      {liveEditState && (
+        <LiveEditOverlay
+          cfg={liveEditState.cfg}
+          setCfg={liveEditState.setCfg}
+          onUpdate={updateSettings}
+          settings={settings}
+          onClose={() => setLiveEditState(null)}
+        />
       )}
 
       <AddTicketModal

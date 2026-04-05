@@ -25,7 +25,7 @@ interface CartItem {
 }
 
 export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, salaVentas, settings }: SalaVentasProps) {
-  const primaryColor = settings?.theme_button_color || '#10b981';
+  const primaryColor = settings?.theme_button_color || '#f97316';
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState('');

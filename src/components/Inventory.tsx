@@ -46,7 +46,7 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
   const fetchCounts = async () => {
     if (!settings?.company_id) return;
     try {
-      const [{ count: allCount }, { count: laborCount }, { count: alertsCount }] = await Promise.all([
+      const [{ count: allCount }, { count: laborCount }, alertsResult] = await Promise.all([
         supabaseGarage.from('garage_parts').select('*', { count: 'exact', head: true })
           .eq('company_id', settings.company_id)
           .not('name', 'ilike', '%servicio%')
@@ -55,19 +55,25 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
         supabaseGarage.from('garage_parts').select('*', { count: 'exact', head: true })
           .eq('company_id', settings.company_id)
           .or('name.ilike.%servicio%,name.ilike.%m.o.%,name.ilike.%mano de obra%'),
-        supabaseGarage.from('vw_garage_parts_alerts').select('*', { count: 'exact', head: true })
+        // Para alertas: traemos solo stock y min_stock para contar ítems bajo mínimo
+        supabaseGarage.from('garage_parts').select('stock, min_stock')
           .eq('company_id', settings.company_id)
       ]);
+
+      const alertsCount = (alertsResult.data || []).filter(
+        (p: any) => p.stock <= p.min_stock
+      ).length;
 
       setCounts({
         all: allCount || 0,
         labor: laborCount || 0,
-        alerts: alertsCount || 0
+        alerts: alertsCount
       });
     } catch (error) {
       console.error('Error fetching counts:', error);
     }
   };
+
 
   const fetchInventoryData = async (term: string, tab: TabType, sort: { field: SortField; direction: SortDirection }, pageIndex: number, append: boolean = false) => {
     if (!settings?.company_id) return;
@@ -81,7 +87,18 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
 
       let query;
       if (tab === 'alerts') {
-        query = supabaseGarage.from('vw_garage_parts_alerts').select('*').eq('company_id', settings.company_id);
+        // PostgREST no soporta comparar dos columnas directamente.
+        // Obtenemos todos los ítems y filtramos en cliente.
+        const { data: allParts, error: alertErr } = await supabaseGarage
+          .from('garage_parts')
+          .select('*')
+          .eq('company_id', settings.company_id);
+        if (alertErr) throw alertErr;
+        const alertParts = (allParts || []).filter((p: any) => p.stock <= p.min_stock);
+        if (!append) setInventoryParts(alertParts);
+        else setInventoryParts(prev => [...prev, ...alertParts]);
+        setHasMore(false); // todos los alertas cargados de una
+        return;
       } else {
         query = supabaseGarage.from('garage_parts').select('*').eq('company_id', settings.company_id);
         if (tab === 'labor') {
@@ -96,6 +113,7 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
       }
 
       query = query.order(sort.field, { ascending: sort.direction === 'asc' });
+
       query = query.range(from, to);
 
       const { data, error } = await query;

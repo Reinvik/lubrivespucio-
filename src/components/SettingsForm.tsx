@@ -25,8 +25,8 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
         logo_x_offset: 50,
         logo_y_offset: 50,
         theme_menu_text: '#a1a1aa',
-        theme_menu_highlight: '#10b981',
-        theme_button_color: '#059669',
+        theme_menu_highlight: '#f97316',
+        theme_button_color: '#ea580c',
         company_slug: ''
     });
     const [loading, setLoading] = useState(false);
@@ -56,30 +56,20 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                 logo_x_offset: settings.logo_x_offset ?? 50,
                 logo_y_offset: settings.logo_y_offset ?? 50,
                 theme_menu_text: settings.theme_menu_text || '#a1a1aa',
-                theme_menu_highlight: settings.theme_menu_highlight || '#10b981',
-                theme_button_color: settings.theme_button_color || '#059669',
+                theme_menu_highlight: settings.theme_menu_highlight || '#f97316',
+                theme_button_color: settings.theme_button_color || '#ea580c',
                 company_slug: settings.company_slug || '',
                 pricing: settings.pricing || {
-                    oil_simple: {
-                        "20W50": 29000,
-                        "15W40": 30000,
-                        "10W40 S": 32000,
-                        "10W40 SM": 35000,
-                        "5W30 SM": 46000,
-                        "5W30 SN": 52000,
-                        "5W30 DPF": 62000
-                    },
-                    oil_full: {
-                        "20W50": 49000,
-                        "15W40": 50000,
-                        "10W40 S": 52000,
-                        "10W40 SM": 55000,
-                        "5W30 SM": 66000,
-                        "5W30 SN": 72000,
-                        "5W30 DPF": 82000
-                    },
-                    brake_pads: 30000,
-                    inspection: 35000
+                    oil_changes: [
+                        { id: '1', name: 'Cambio de Aceite Básico (20W50)', price: 29000 },
+                        { id: '2', name: 'Cambio de Aceite Full (5W30)', price: 72000 }
+                    ],
+                    brakes: [
+                        { id: '3', name: 'Cambio Pastillas de Freno', price: 30000 }
+                    ],
+                    tune_ups: [
+                        { id: '4', name: 'Inspección Preventiva', price: 35000 }
+                    ]
                 }
             });
         }
@@ -233,8 +223,8 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                             placeholder="Ej: Lubricentro Vespucio"
                              className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 outline-none transition-all text-zinc-800 focus:ring-2"
                             style={{ 
-                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `${formData.theme_menu_highlight}40` : undefined,
-                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
+                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `${formData.theme_menu_highlight}40` : undefined,
+                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
                             }}
                             value={formData.workshop_name}
                             onChange={e => setFormData({ ...formData, workshop_name: e.target.value })}
@@ -251,8 +241,8 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                             placeholder="+569 1234 5678"
                             className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 outline-none transition-all text-zinc-800 font-mono focus:ring-2"
                             style={{ 
-                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `${formData.theme_menu_highlight}40` : undefined,
-                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
+                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `${formData.theme_menu_highlight}40` : undefined,
+                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
                             }}
                             value={formData.phone}
                             onChange={e => setFormData({ ...formData, phone: e.target.value })}
@@ -269,8 +259,8 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                             placeholder="https://ejemplo.com/mi-logo.png"
                             className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 outline-none transition-all text-zinc-800 focus:ring-2"
                             style={{ 
-                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `${formData.theme_menu_highlight}40` : undefined,
-                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
+                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `${formData.theme_menu_highlight}40` : undefined,
+                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
                             }}
                             value={formData.logo_url}
                             onChange={e => setFormData({ ...formData, logo_url: e.target.value })}
@@ -359,8 +349,8 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                             placeholder="Av. Principal #123, Ciudad"
                             className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 outline-none transition-all text-zinc-800 focus:ring-2"
                             style={{ 
-                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `${formData.theme_menu_highlight}40` : undefined,
-                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
+                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `${formData.theme_menu_highlight}40` : undefined,
+                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
                             }}
                             value={formData.address}
                             onChange={e => setFormData({ ...formData, address: e.target.value })}
@@ -379,8 +369,8 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                             placeholder="Mensaje que se enviará a los clientes..."
                             className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 outline-none transition-all text-zinc-800 resize-none focus:ring-2"
                             style={{ 
-                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `${formData.theme_menu_highlight}40` : undefined,
-                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
+                                borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `${formData.theme_menu_highlight}40` : undefined,
+                                boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
                             }}
                             value={formData.whatsapp_template}
                             onChange={e => setFormData({ ...formData, whatsapp_template: e.target.value })}
@@ -400,98 +390,139 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                 ) : activeTab === 'pricing' ? (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div>
-                        <h3 className="text-lg font-bold text-zinc-900">Gestión de Precios</h3>
-                        <p className="text-sm text-zinc-500 mt-1">Configura los precios de los servicios de Lubricentro. Estos se verán reflejados en la Landing Page.</p>
+                        <h3 className="text-lg font-bold text-zinc-900">Gestión de Precios Dinámicos</h3>
+                        <p className="text-sm text-zinc-500 mt-1">Configura los precios de los servicios. Puedes enlazarlos a ítems de tu inventario para mantener el precio actualizado, y personalizar el nombre que verá el cliente.</p>
                     </div>
 
                     <div className="space-y-6">
-                        {/* Categoría 1: Simple */}
-                        <div className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
-                            <h4 className="font-bold text-zinc-900 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                Categoría 1: Simple (Aceite + Filtro Aceite)
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {Object.keys(formData.pricing?.oil_simple || {}).map((oil) => (
-                                    <div key={`simple-${oil}`} className="space-y-1">
-                                        <label className="text-xs font-semibold text-zinc-500">{oil}</label>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
-                                            <input
-                                                type="number"
-                                                className="w-full pl-7 pr-4 py-2 rounded-lg border border-zinc-200 text-sm font-mono"
-                                                value={formData.pricing?.oil_simple?.[oil] || 0}
-                                                onChange={(e) => {
-                                                    const newPricing = { ...formData.pricing };
-                                                    if (newPricing.oil_simple) {
-                                                        newPricing.oil_simple[oil] = parseInt(e.target.value) || 0;
-                                                        setFormData({ ...formData, pricing: newPricing as any });
-                                                    }
-                                                }}
-                                            />
-                                        </div>
+                        {['oil_changes', 'brakes', 'tune_ups'].map((category) => {
+                            const categoryLabels: Record<string, string> = {
+                                oil_changes: 'Cambios de Aceite',
+                                brakes: 'Frenos',
+                                tune_ups: 'Afinamiento / Inspección'
+                            };
+                            
+                            const items = formData.pricing?.[category] || [];
+                            
+                            return (
+                                <div key={category} className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-bold text-zinc-900 capitalize">{categoryLabels[category] || category}</h4>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newPricing = { ...formData.pricing };
+                                                const newItems = [...(newPricing[category] || [])];
+                                                newItems.push({ id: crypto.randomUUID(), name: '', price: 0 });
+                                                newPricing[category] = newItems;
+                                                setFormData({ ...formData, pricing: newPricing as any });
+                                            }}
+                                            className="text-xs px-3 py-1.5 bg-zinc-100 font-bold text-zinc-700 rounded-lg hover:bg-zinc-200 transition-colors"
+                                        >
+                                            + Agregar Servicio
+                                        </button>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                    
+                                    <div className="space-y-3">
+                                        {items.map((item: any, index: number) => (
+                                            <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3 rounded-xl border border-zinc-100 bg-zinc-50/50">
+                                                {/* Enlace Inventario */}
+                                                <div className="md:col-span-4 space-y-1">
+                                                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Inventario Vinculado</label>
+                                                    <select
+                                                        className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm outline-none bg-white"
+                                                        value={item.inventoryItemId || ''}
+                                                        onChange={e => {
+                                                            const newId = e.target.value;
+                                                            const newPricing = { ...formData.pricing };
+                                                            const newItems = [...newPricing[category]];
+                                                            const selectedPart = parts?.find(p => p.id === newId);
+                                                            
+                                                            newItems[index] = { 
+                                                                ...newItems[index], 
+                                                                inventoryItemId: newId || null,
+                                                                price: selectedPart ? selectedPart.price : newItems[index].price,
+                                                                name: (!newItems[index].name && selectedPart) ? selectedPart.name : newItems[index].name
+                                                            };
+                                                            newPricing[category] = newItems;
+                                                            setFormData({ ...formData, pricing: newPricing as any });
+                                                        }}
+                                                    >
+                                                        <option value="">-- Manual (Sin vincular) --</option>
+                                                        {parts?.map(p => (
+                                                            <option key={p.id} value={p.id}>{p.name} (${p.price.toLocaleString()})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                
+                                                {/* Nombre Público */}
+                                                <div className="md:col-span-4 space-y-1">
+                                                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Nombre Público</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm outline-none bg-white font-medium"
+                                                        placeholder="Nombre del servicio"
+                                                        value={item.name}
+                                                        onChange={e => {
+                                                            const newPricing = { ...formData.pricing };
+                                                            const newItems = [...newPricing[category]];
+                                                            newItems[index] = { ...newItems[index], name: e.target.value };
+                                                            newPricing[category] = newItems;
+                                                            setFormData({ ...formData, pricing: newPricing as any });
+                                                        }}
+                                                    />
+                                                </div>
 
-                        {/* Categoría 2: Full */}
-                        <div className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
-                            <h4 className="font-bold text-zinc-900 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                                Categoría 2: Full (Aceite + Todos los Filtros)
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {Object.keys(formData.pricing?.oil_full || {}).map((oil) => (
-                                    <div key={`full-${oil}`} className="space-y-1">
-                                        <label className="text-xs font-semibold text-zinc-500">{oil}</label>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
-                                            <input
-                                                type="number"
-                                                className="w-full pl-7 pr-4 py-2 rounded-lg border border-zinc-200 text-sm font-mono"
-                                                value={formData.pricing?.oil_full?.[oil] || 0}
-                                                onChange={(e) => {
-                                                    const newPricing = { ...formData.pricing };
-                                                    if (newPricing.oil_full) {
-                                                        newPricing.oil_full[oil] = parseInt(e.target.value) || 0;
-                                                        setFormData({ ...formData, pricing: newPricing as any });
-                                                    }
-                                                }}
-                                            />
-                                        </div>
+                                                {/* Precio Final */}
+                                                <div className="md:col-span-3 space-y-1">
+                                                    <label className="text-[10px] font-bold text-zinc-500 uppercase">Precio Final</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full pl-7 pr-3 py-2 rounded-lg border border-zinc-200 text-sm font-mono bg-white outline-none"
+                                                            value={item.price}
+                                                            onChange={e => {
+                                                                const newPricing = { ...formData.pricing };
+                                                                const newItems = [...newPricing[category]];
+                                                                newItems[index] = { ...newItems[index], price: parseInt(e.target.value) || 0 };
+                                                                newPricing[category] = newItems;
+                                                                setFormData({ ...formData, pricing: newPricing as any });
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Eliminar */}
+                                                <div className="md:col-span-1 pb-1 flex justify-center">
+                                                    <button
+                                                        type="button"
+                                                        title="Eliminar servicio"
+                                                        onClick={() => {
+                                                            const newPricing = { ...formData.pricing };
+                                                            const newItems = [...newPricing[category]];
+                                                            newItems.splice(index, 1);
+                                                            newPricing[category] = newItems;
+                                                            setFormData({ ...formData, pricing: newPricing as any });
+                                                        }}
+                                                        className="w-9 h-9 rounded-xl bg-white border border-rose-100 text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors flex items-center justify-center font-bold"
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        
+                                        {items.length === 0 && (
+                                            <div className="py-6 flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 rounded-xl bg-zinc-50">
+                                                <p className="text-sm font-medium text-zinc-500">No hay servicios en esta categoría.</p>
+                                                <p className="text-xs text-zinc-400">Haz clic en "+ Agregar Servicio" para comenzar.</p>
+                                            </div>
+                                        )}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Otros Servicios */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
-                                <h4 className="font-bold text-zinc-900 flex items-center gap-2">Pastillas de Frenos</h4>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
-                                    <input
-                                        type="number"
-                                        className="w-full pl-7 pr-4 py-2 rounded-lg border border-zinc-200 text-sm font-mono"
-                                        value={formData.pricing?.brake_pads || 0}
-                                        onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, brake_pads: parseInt(e.target.value) || 0 } as any })}
-                                    />
                                 </div>
-                            </div>
-                            <div className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
-                                <h4 className="font-bold text-zinc-900 flex items-center gap-2">Inspección Preventiva</h4>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
-                                    <input
-                                        type="number"
-                                        className="w-full pl-7 pr-4 py-2 rounded-lg border border-zinc-200 text-sm font-mono"
-                                        value={formData.pricing?.inspection || 0}
-                                        onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, inspection: parseInt(e.target.value) || 0 } as any })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                            );
+                        })}
                     </div>
                 </div>
                 ) : activeTab === 'export' ? (
@@ -701,11 +732,11 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                             <div className="flex items-center gap-4">
                                 <input 
                                     type="color" 
-                                    value={formData.theme_menu_highlight || '#10b981'} 
+                                    value={formData.theme_menu_highlight || '#f97316'} 
                                     onChange={e => setFormData({ ...formData, theme_menu_highlight: e.target.value })}
                                     className="w-12 h-12 rounded bg-transparent cursor-pointer"
                                 />
-                                <span className="font-mono text-zinc-600 text-sm uppercase bg-white border border-zinc-200 px-3 py-1.5 rounded-lg">{formData.theme_menu_highlight || '#10b981'}</span>
+                                <span className="font-mono text-zinc-600 text-sm uppercase bg-white border border-zinc-200 px-3 py-1.5 rounded-lg">{formData.theme_menu_highlight || '#f97316'}</span>
                             </div>
                         </div>
 
@@ -715,11 +746,11 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                             <div className="flex items-center gap-4">
                                 <input 
                                     type="color" 
-                                    value={formData.theme_button_color || '#059669'} 
+                                    value={formData.theme_button_color || '#ea580c'} 
                                     onChange={e => setFormData({ ...formData, theme_button_color: e.target.value })}
                                     className="w-12 h-12 rounded bg-transparent cursor-pointer"
                                 />
-                                <span className="font-mono text-zinc-600 text-sm uppercase bg-white border border-zinc-200 px-3 py-1.5 rounded-lg">{formData.theme_button_color || '#059669'}</span>
+                                <span className="font-mono text-zinc-600 text-sm uppercase bg-white border border-zinc-200 px-3 py-1.5 rounded-lg">{formData.theme_button_color || '#ea580c'}</span>
                             </div>
                         </div>
                      </div>
@@ -733,8 +764,8 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                                 placeholder="mi-taller"
                                 className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 outline-none transition-all text-zinc-800 font-mono focus:ring-2"
                                 style={{ 
-                                    borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `${formData.theme_menu_highlight}40` : undefined,
-                                    boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
+                                    borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `${formData.theme_menu_highlight}40` : undefined,
+                                    boxShadow: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#f97316' ? `0 0 0 2px ${formData.theme_menu_highlight}20` : undefined
                                 }}
                                 value={formData.company_slug}
                                 onChange={e => setFormData({ ...formData, company_slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}

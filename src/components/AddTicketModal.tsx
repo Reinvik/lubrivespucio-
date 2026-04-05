@@ -221,7 +221,7 @@ export function AddTicketModal({ isOpen, onClose, onAdd, mechanics, customers, t
     }));
   };
 
-  const primaryColor = settings?.theme_button_color || '#10b981';
+  const primaryColor = settings?.theme_button_color || '#f97316';
 
   const selectCustomer = (item: any) => {
     // Determine the correct plate to use for the input field

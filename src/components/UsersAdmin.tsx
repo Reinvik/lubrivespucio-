@@ -7,6 +7,9 @@ import { cn } from '../lib/utils';
 interface Company {
   id: string;
   name: string;
+  schema_name?: string;
+  allowed_apps?: string[];
+  allowed_modules?: string[];
 }
 
 export function UsersAdmin() {
@@ -19,6 +22,9 @@ export function UsersAdmin() {
   // Create Company State
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
+  const [newCompanySchema, setNewCompanySchema] = useState('');
+  const [newCompanyApps, setNewCompanyApps] = useState<string[]>(['garage']); // Default to garage
+
 
   // New User State
   const [showAddUser, setShowAddUser] = useState(false);
@@ -38,7 +44,7 @@ export function UsersAdmin() {
       setLoading(true);
       const [profilesRes, companiesRes] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('companies').select('id, name').order('name')
+        supabase.from('companies').select('id, name, schema_name, allowed_apps, allowed_modules').order('name')
       ]);
 
       if (profilesRes.data) setProfiles(profilesRes.data);
@@ -138,14 +144,19 @@ export function UsersAdmin() {
       setSaving('new_company');
       const { data, error } = await supabase
         .from('companies')
-        .insert([{ name: newCompanyName.trim(), schema_name: 'garage' }])
-        .select('id, name')
+        .insert([{ 
+          name: newCompanyName.trim(), 
+          schema_name: newCompanySchema.trim() || 'public',
+          allowed_apps: newCompanyApps
+        }])
+        .select('id, name, schema_name, allowed_apps, allowed_modules')
         .single();
 
       if (error) throw error;
       
       setCompanies(prev => [...prev, data]);
       setNewCompanyName('');
+      setNewCompanySchema('');
       setIsCreatingCompany(false);
     } catch (error) {
       console.error('Error creating company:', error);
@@ -205,7 +216,7 @@ export function UsersAdmin() {
             </button>
 
             {isCreatingCompany ? (
-              <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-zinc-300 shadow-sm">
+              <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-zinc-300 shadow-sm flex-wrap">
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                   <input
@@ -213,9 +224,18 @@ export function UsersAdmin() {
                     placeholder="Nombre empresa..."
                     value={newCompanyName}
                     onChange={(e) => setNewCompanyName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreateCompany()}
                     className="pl-9 pr-3 py-1.5 focus:outline-none text-sm w-48 bg-transparent"
                     autoFocus
+                  />
+                </div>
+                <div className="relative border-l border-zinc-200 pl-2">
+                  <input
+                    type="text"
+                    placeholder="Esquema (ej: client_foo)"
+                    value={newCompanySchema}
+                    onChange={(e) => setNewCompanySchema(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateCompany()}
+                    className="px-2 py-1.5 focus:outline-none text-sm w-48 bg-transparent"
                   />
                 </div>
                 <button
@@ -233,6 +253,31 @@ export function UsersAdmin() {
                 >
                   Cancelar
                 </button>
+                <div className="flex items-center gap-3 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase">Apps:</span>
+                  {[
+                    { id: 'garage', label: 'Garage' },
+                    { id: 'lean', label: 'Lean' },
+                    { id: 'projects', label: 'Projects' },
+                    { id: 'medical', label: 'Medical' }
+                  ].map(app => (
+                    <label key={app.id} className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newCompanyApps.includes(app.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewCompanyApps([...newCompanyApps, app.id]);
+                          } else {
+                            setNewCompanyApps(newCompanyApps.filter(a => a !== app.id));
+                          }
+                        }}
+                        className="w-3 h-3 rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="text-[10px] font-medium text-zinc-600">{app.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             ) : (
               <button
@@ -264,17 +309,23 @@ export function UsersAdmin() {
                     <div className="text-sm text-zinc-500">{profile.email}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <select
-                      value={profile.company_id || ''}
-                      onChange={(e) => updateCompany(profile.id, e.target.value)}
-                      disabled={saving === profile.id}
-                      className="w-full max-w-[200px] px-3 py-1.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50"
-                    >
-                      <option value="" disabled>Seleccione empresa</option>
-                      {companies.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-col gap-1">
+                        <select
+                        value={profile.company_id || ''}
+                        onChange={(e) => updateCompany(profile.id, e.target.value)}
+                        disabled={saving === profile.id}
+                        className="w-full max-w-[200px] px-3 py-1.5 bg-white border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none disabled:opacity-50"
+                        >
+                        <option value="" disabled>Seleccione empresa</option>
+                        {companies.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                        </select>
+                        {profile.company_id && (() => {
+                            const c = companies.find(comp => comp.id === profile.company_id);
+                            return c ? <span className="text-[10px] text-zinc-500 font-mono">Schema: {c.schema_name || 'public'}</span> : null;
+                        })()}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -388,6 +439,30 @@ export function UsersAdmin() {
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
+                        {newUser.company_id && (() => {
+                            const selectedComp = companies.find(c => c.id === newUser.company_id);
+                            if (!selectedComp) return null;
+                            return (
+                                <div className="mt-3 p-3 bg-zinc-100 rounded-xl border border-zinc-200 flex flex-col gap-2">
+                                    <div className="text-xs font-semibold text-zinc-500 uppercase flex items-center justify-between">
+                                        <span>Esquema Base de Datos</span>
+                                        <span className="font-mono bg-zinc-200 px-2 py-0.5 rounded text-zinc-700">
+                                            {selectedComp.schema_name || 'public'}
+                                        </span>
+                                    </div>
+                                    {selectedComp.allowed_apps && selectedComp.allowed_apps.length > 0 && (
+                                        <div className="pt-2 border-t border-zinc-200 flex flex-wrap gap-1.5">
+                                            {selectedComp.allowed_apps.map(app => (
+                                                <span key={app} className="text-[10px] font-bold px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                                                    <CheckCircle2 className="w-3 h-3" />
+                                                    {app === 'lean' ? 'Nexus Lean' : app === 'projects' ? 'Nexus Projects' : app === 'skills' ? 'Nexus Skills' : app === 'medical' ? 'Nexus Medical' : app}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     <div className="flex gap-3 pt-4">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Wrench, Package, Users, Settings, LogOut, Bell, Calendar, Menu, X, BarChart3, Search, CalendarCheck, Plus, RefreshCw, ShoppingCart, Sparkles, ShieldCheck, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Wrench, Package, Users, Settings, LogOut, Bell, Calendar, Menu, X, BarChart3, Search, CalendarCheck, Plus, RefreshCw, ShoppingCart, Sparkles, ShieldCheck, MessageCircle, Globe } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -43,13 +43,13 @@ export function Layout({
   }, [settings?.logo_url]);
 
   const menuTextColor = settings?.theme_menu_text || branding?.theme_menu_text || '#71717a'; // Neutral gray for unselected items
-  const menuHighlightColor = settings?.theme_menu_highlight || branding?.theme_menu_highlight || '#10b981'; // Emerald 500
-  const primaryButtonColor = settings?.theme_button_color || '#059669'; // Emerald 600 default
+  const menuHighlightColor = settings?.theme_menu_highlight || branding?.theme_menu_highlight || '#f97316'; // Emerald 500
+  const primaryButtonColor = settings?.theme_button_color || '#ea580c'; // Emerald 600 default
 
   // Añadir opacidad de 10% (aprox 1A) a highlightColor si tiene formato hexadecimal
   const highlightBg = menuHighlightColor.startsWith('#') && menuHighlightColor.length === 7 
     ? `${menuHighlightColor}1A` 
-    : 'rgba(16, 185, 129, 0.1)';
+    : 'rgba(249, 115, 22, 0.1)';
 
   const navItems = [
     { id: 'dashboard', label: 'Tablero Kanban', icon: LayoutDashboard },
@@ -62,6 +62,7 @@ export function Layout({
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'messages', label: 'Mensajes', icon: MessageCircle },
     { id: 'ai_consultant', label: 'Consultor IA', icon: Sparkles },
+    { id: 'landing_editor', label: 'Landing Page', icon: Globe },
   ];
 
   if (isSuperAdmin) {
@@ -75,7 +76,7 @@ export function Layout({
 
   const primaryShadow = primaryButtonColor.startsWith('#') && primaryButtonColor.length === 7 
     ? `${primaryButtonColor}33` 
-    : 'rgba(16, 185, 129, 0.2)';
+    : 'rgba(234, 88, 12, 0.2)';
 
   return (
     <div 

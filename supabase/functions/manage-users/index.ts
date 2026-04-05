@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
       console.log("User created in Auth, inserting profile for:", authData.user.id);
       const { error: profileError } = await supabaseClient
         .from('profiles')
-        .insert([{
+        .upsert([{
           id: authData.user.id,
           email,
           full_name,

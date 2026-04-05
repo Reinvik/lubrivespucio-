@@ -35,10 +35,10 @@ export function Login({ onLogin, onCustomerSearch, onOpenBooking, branding }: Lo
   // Paleta de colores Premium
   // Si es amarillo brillante (#f2ea18), lo pasamos a un Amarillo/Oro elegante y legible
   const getPremiumColor = (hex?: string) => {
-    if (!hex || hex === '#D6A621') return '#10b981'; // Vespucio Emerald default
+    if (!hex || hex === '#D6A621') return '#f97316'; // Vespucio Emerald default
     const cleanHex = hex.toLowerCase();
     // Amarillo Lubricentro Vespucio Legacy: #D6A621. We override it to Emerald if detected.
-    if (cleanHex === '#d6a621' || cleanHex === '#f2ea18' || cleanHex === '#ffff00' || cleanHex.includes('yellow')) return '#10b981'; 
+    if (cleanHex === '#d6a621' || cleanHex === '#f2ea18' || cleanHex === '#ffff00' || cleanHex.includes('yellow')) return '#f97316'; 
     return hex;
   };
 

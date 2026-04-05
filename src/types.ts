@@ -144,11 +144,59 @@ export interface GarageNotification {
   created_at: string;
 }
 
+export interface DynamicPricingTier {
+  id: string;
+  name: string;
+  price: number;
+  inventoryItemId?: string | null;
+  description?: string;
+}
+
+export interface LandingPageConfig {
+  // Hero
+  hero_badge?: string;
+  hero_title?: string;
+  hero_subtitle?: string;
+  hero_cta_text?: string;
+  hero_phone?: string;
+  hero_image_url?: string;
+  hero_stat1_value?: string;
+  hero_stat1_label?: string;
+  hero_stat2_value?: string;
+  hero_stat2_label?: string;
+  hero_trust_text?: string;
+  hero_search_hint?: string;
+  // Services Section
+  services_section_tag?: string;
+  services_section_title?: string;
+  services_section_body?: string;
+  // Location Section
+  location_tag?: string;
+  location_title?: string;
+  location_body?: string;
+  location_address?: string;
+  location_hours_weekday?: string;
+  location_hours_saturday?: string;
+  location_phone?: string;
+  location_maps_url?: string;
+  // Footer
+  footer_copyright?: string;
+  // Brand
+  header_logo_url?: string;
+  location_image_url?: string;
+  // Theme / Colors
+  theme_primary_color?: string;
+  theme_secondary_color?: string;
+  theme_accent_color?: string;
+  theme_background_color?: string;
+  theme_border_radius?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
+}
+
 export interface ServicePricing {
-  oil_simple: Record<string, number>;
-  oil_full: Record<string, number>;
-  brake_pads: number;
-  inspection: number;
+  oil_changes: DynamicPricingTier[];
+  brakes: DynamicPricingTier[];
+  tune_ups: DynamicPricingTier[];
+  [category: string]: DynamicPricingTier[];
 }
 
 export interface GarageSettings {
@@ -168,6 +216,7 @@ export interface GarageSettings {
   company_slug?: string;
   services_catalog?: LubriService[];
   pricing?: ServicePricing;
+  landing_config?: LandingPageConfig;
 }
 
 // ─── Sala Ventas (Mostrador / POS) ───────────────────────────────────────────
