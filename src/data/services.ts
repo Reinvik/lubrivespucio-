@@ -1,83 +1,77 @@
-export interface ServiceFeature {
-  name: string;
-  included: boolean;
-}
+import { LubriService } from "../types";
 
-export interface LubriService {
-  id: string;
-  title: string;
-  description: string;
-  price: string;
-  category: string;
-  icon: string;
-  features: string[];
-}
-
-export const LUBRIVESPUCIO_SERVICES: LubriService[] = [
+export const LUBRIgarage_SERVICES: LubriService[] = [
   {
-    id: 'aceite-motor',
-    title: 'Cambio de Aceite de Motor',
-    description: 'Servicio completo de lubricación para mantener el motor protegido y eficiente.',
-    price: 'Desde $35.000',
-    category: 'Aceites',
+    id: 'cambio-aceite-basico',
+    title: 'CAMBIO DE ACEITE Y FILTRO ACEITE',
+    description: 'Servicio esencial para la lubricación y protección del motor.',
+    details: 'Incluye drenado de aceite usado, instalación de filtro de aceite nuevo y relleno con el lubricante seleccionado según especificaciones del fabricante.',
+    price: 'Desde $29.000',
+    category: 'Mantenimiento',
     icon: 'Droplet',
-    features: [
-      'Cambio de Aceite (Mineral, Semi o Sintético)',
-      'Filtro de Aceite (según modelo)',
-      'Revisión de Niveles (Frenos, Refrigerante, Dirección)',
-      'Inspección Visual de Seguridad'
-    ]
+    image: '/assets/services/oil_change_premium.png',
+    pricingTiers: [
+      { label: '20W50', price: 29000 },
+      { label: '15W40', price: 30000 },
+      { label: '10W40 S', price: 32000 },
+      { label: '10W40 SM', price: 35000 },
+      { label: '5W30 SM', price: 46000 },
+      { label: '5W30 SN', price: 52000 },
+      { label: '5W30 DPF', price: 62000 },
+    ],
+    footerNote: 'VARIAN LOS PRECIOS SEGUN EL ACEITE Y FILTRO QUE REQUIERA SU VEHICULO.'
   },
   {
-    id: 'aceite-transmision',
-    title: 'Cambio de Aceite de Transmisión',
-    description: 'Mantenimiento preventivo para la vida útil de tu caja de cambios.',
-    price: 'Desde $45.000',
-    category: 'Aceites',
+    id: 'cambio-aceite-completo',
+    title: 'MANTENCIÓN DE ACEITE Y FILTROS COMPLETA',
+    description: 'Servicio integral con todos los filtros y revisión de niveles.',
+    details: 'Nuestro servicio más solicitado. Incluye cambio de aceite, filtro de aceite, filtro de aire y filtro de polen (si corresponde), además de una revisión técnica de niveles de fluidos.',
+    price: 'Desde $49.000',
+    category: 'Mantenimiento',
     icon: 'Settings',
-    features: [
-      'Cambio de fluido de Transmisión Automática/Manual',
-      'Revisión de fugas en cárter',
-      'Prueba de suavidad en marchas'
-    ]
+    image: '/assets/services/full_maintenance_premium.png',
+    pricingTiers: [
+      { label: '20W50', price: 49000 },
+      { label: '15W40', price: 50000 },
+      { label: '10W40 S', price: 52000 },
+      { label: '10W40 SM', price: 55000 },
+      { label: '5W30 SM', price: 66000 },
+      { label: '5W30 SN', price: 72000 },
+      { label: '5W30 DPF', price: 82000 },
+    ],
+    footerNote: 'VARIAN LOS PRECIOS SEGUN EL ACEITE Y LOS FILTROS QUE REQUIERA SU VEHICULO.'
   },
   {
-    id: 'frenos',
-    title: 'Servicio de Frenos',
-    description: 'Revisión técnica y reemplazo de componentes para un frenado seguro.',
-    price: 'Desde $25.000',
+    id: 'pastillas-freno',
+    title: 'CAMBIO PASTILLAS DE FRENO',
+    description: 'Seguridad garantizada con el reemplazo de componentes de frenado.',
+    details: 'Reemplazo de pastillas de freno delanteras o traseras. Incluye limpieza de componentes y revisión de estado de discos.',
+    price: 'Desde $30.000',
     category: 'Seguridad',
     icon: 'ShieldCheck',
-    features: [
-      'Revisión de Pastillas y Discos',
-      'Limpieza y Ajuste de Frenos Traseros',
-      'Relleno de Líquido de Frenos'
-    ]
+    image: '/assets/services/brake_pads_premium.png',
+    footerNote: 'VARIAN LOS PRECIOS SEGUN LAS PASTILLAS QUE REQUIERA SU VEHICULO.'
   },
   {
-    id: 'filtros-aire',
-    title: 'Cambio de Filtros (Aire y Polen)',
-    description: 'Mejora la calidad del aire y el rendimiento del combustible.',
-    price: 'Desde $12.000',
-    category: 'Mantenimiento',
-    icon: 'Wind',
-    features: [
-      'Filtro de Aire de Motor',
-      'Filtro de Polen (Habitáculo)',
-      'Limpieza de conductos de aire'
-    ]
-  },
-  {
-    id: 'scanner',
-    title: 'Escáner Diagnóstico',
-    description: 'Identificación precisa de fallas electrónicas y códigos de error.',
-    price: 'Desde $20.000',
+    id: 'inspeccion-18-puntos',
+    title: 'INSPECCIÓN O REPARACIÓN AUTOMOTRIZ',
+    description: 'Revisión mecánica detallada de 18 puntos críticos.',
+    details: 'Se entrega un informe detallado del estado de 18 puntos vitales del vehículo, incluyendo tren delantero, frenos, luces, niveles y estado general de piezas mecánicas.',
+    price: 'Desde $35.000',
     category: 'Diagnóstico',
-    icon: 'Cpu',
-    features: [
-      'Lectura de Códigos de Falla',
-      'Borrado de Check Engine',
-      'Informe Técnico Preventivo'
-    ]
+    icon: 'Scan',
+    image: '/assets/services/inspection_premium.png',
+    footerNote: 'PUEDE VARIAR SEGUN COMPLEJIDAD PARA ACCEDER A DICHAS PIEZAS O PARTES.'
+  },
+  {
+    id: 'mantencion-preventiva',
+    title: 'MANTENCIÓN PREVENTIVA',
+    description: 'Mantenimiento programado según kilometraje (10k, 20k, 30k+).',
+    details: 'Mantenimiento integral basado en las pautas de fabricante. Incluye inspección profunda, rotación de neumáticos y scanner diagnótico.',
+    price: 'Consultar',
+    category: 'Mantenimiento',
+    icon: 'Clock',
+    image: '/assets/services/preventive_premium.png',
+    footerNote: 'EL PRECIO DEPENDE DEL KILOMETRAJE Y MODELO DEL VEHÍCULO.'
   }
 ];

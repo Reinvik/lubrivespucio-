@@ -1,16 +1,32 @@
 export type TicketStatus =
-  | 'Ingresado'
-  | 'En Espera'
+  | 'Ingreso'
+  | 'En espera'
   | 'En Mantención'
-  | 'En Reparación'
-  | 'Elevador 1'
-  | 'Elevador 2'
-  | 'Listo para Entrega'
+  | 'Listo para entrega'
   | 'Finalizado'
   | 'Entregado'; // Estado oculto para CRM
 
 export type PaymentMethod = 'Efectivo' | 'Tarjeta' | 'Transferencia';
 export type DocumentType = 'Boleta' | 'Factura';
+
+export interface PricingTier {
+  label: string;
+  price: number;
+}
+
+export interface LubriService {
+  id: string;
+  title: string;
+  description: string;
+  details?: string;
+  price: string;
+  category: string;
+  icon: string;
+  features?: string[];
+  pricingTiers?: PricingTier[];
+  footerNote?: string;
+  image?: string;
+}
 
 export interface TicketHistoryEntry {
   status: TicketStatus;
@@ -19,6 +35,7 @@ export interface TicketHistoryEntry {
 }
 
 export interface ServiceLogEntry {
+  id?: string;
   date: string; // ISO de cuando se despachó o ingresó
   notes: string;
   parts: string[];
@@ -71,6 +88,9 @@ export interface Ticket {
   rut_empresa?: string;
   razon_social?: string;
   transfer_data?: string;
+  ingreso_checklist?: ChecklistIngreso;
+  inspeccion?: InspeccionDetalle;
+  status_general?: InspectionStatus;
 }
 
 export interface Mechanic {
@@ -124,6 +144,13 @@ export interface GarageNotification {
   created_at: string;
 }
 
+export interface ServicePricing {
+  oil_simple: Record<string, number>;
+  oil_full: Record<string, number>;
+  brake_pads: number;
+  inspection: number;
+}
+
 export interface GarageSettings {
   id: string;
   company_id: string;
@@ -137,7 +164,10 @@ export interface GarageSettings {
   logo_y_offset?: number;
   theme_menu_text?: string;
   theme_menu_highlight?: string;
+  theme_button_color?: string;
   company_slug?: string;
+  services_catalog?: LubriService[];
+  pricing?: ServicePricing;
 }
 
 // ─── Sala Ventas (Mostrador / POS) ───────────────────────────────────────────
@@ -186,3 +216,171 @@ export interface Garantia {
   comentarios: string | null;
   created_at: string;
 }
+
+export type InspectionStatus = 'green' | 'yellow' | 'red' | 'gray';
+
+export interface InspectionItem {
+  id: string;
+  label: string;
+  status: InspectionStatus;
+  value: string;
+}
+
+export interface InspeccionDetalle {
+  status_general: InspectionStatus;
+  checklist: InspectionItem[];
+  exterior: {
+    estado: string;
+    fotos: string[];
+  };
+  objetosValor: {
+    detalle: string;
+    fotos: string[];
+  };
+  observaciones: string;
+  observacionesUrl?: string; // photo (legacy or general)
+  comentarios: string; // legacy or general
+}
+
+export const INICIAL_CHECKLIST_ITEMS = [
+  { id: 'aceite', label: 'C. ACEITE' },
+  { id: 'filtro_aceite', label: 'C.F. ACEITE' },
+  { id: 'filtro_aire', label: 'C.F. AIRE' },
+  { id: 'filtro_polen', label: 'C.F. POLEN' },
+  { id: 'bujias', label: 'C. BUJIAS' },
+  { id: 'coolant', label: 'R/C. COOLAN' },
+  { id: 'filtro_bencina', label: 'C.F. BENCINA' },
+  { id: 'aceite_caja', label: 'C. ACEI. CAJA' },
+  { id: 'frenos', label: 'R/C. FRENOS' },
+  { id: 'freno_mano', label: 'REG. FRENOMANO' },
+  { id: 'discos', label: 'R/C. DISCOS' },
+  { id: 'tren_delantero', label: 'R. TRENDELAN' },
+  { id: 'amortiguadores', label: 'R. AMORTIG' },
+  { id: 'neumaticos', label: 'ROT/C. NEU' },
+  { id: 'bateria', label: 'R/C. BATERIA' },
+  { id: 'luces', label: 'R. LUCES' },
+  { id: 'niveles', label: 'R. NIVELES' },
+];
+
+export interface ChecklistItem {
+  label: string;
+  status: boolean;
+}
+
+export interface ChecklistIngreso {
+  documentos: { 
+    padron: boolean; 
+    revisionTecnica: boolean; 
+    seguroObligatorio: boolean; 
+    permisoCirculacion: boolean 
+  };
+  luces: { 
+    altas: boolean; 
+    bajas: boolean; 
+    freno: boolean; 
+    retroceso: boolean; 
+    intermitentes: boolean; 
+    patente: boolean; 
+    tablero: boolean 
+  };
+  niveles: { 
+    aceiteMotor: boolean; 
+    liquidoFrenos: boolean; 
+    refrigerante: boolean; 
+    liquidoDireccion: boolean; 
+    aguaLimpiaParabrisas: boolean 
+  };
+  accesorios: { 
+    radio: boolean; 
+    encendedor: boolean; 
+    espejos: boolean; 
+    plumillas: boolean; 
+    tapaBencina: boolean; 
+    tapaRueda: boolean; 
+    gata: boolean; 
+    llaveRueda: boolean; 
+    triangulos: boolean; 
+    extintor: boolean; 
+    botiquin: boolean; 
+    chaleco: boolean 
+  };
+  neumaticos: { 
+    delanteroDerecho: boolean; 
+    delanteroIzquierdo: boolean; 
+    traseroDerecho: boolean; 
+    traseroIzquierdo: boolean; 
+    repuesto: boolean 
+  };
+  exterior?: { 
+    estado: string; 
+    fotos: string[] 
+  };
+  objetosValor?: { 
+    detalle: string; 
+    fotos: string[] 
+  };
+  combustible?: number;
+  kilometraje?: number;
+  lucesTablero?: string;
+  firmaCliente?: string;
+  observacionesGenerales?: string;
+}
+
+export const INICIAL_INGRESO_CHECKLIST: ChecklistIngreso = {
+  documentos: { 
+    padron: false, 
+    revisionTecnica: false, 
+    seguroObligatorio: false, 
+    permisoCirculacion: false 
+  },
+  luces: { 
+    altas: false, 
+    bajas: false, 
+    freno: false, 
+    retroceso: false, 
+    intermitentes: false, 
+    patente: false, 
+    tablero: false 
+  },
+  niveles: { 
+    aceiteMotor: false, 
+    liquidoFrenos: false, 
+    refrigerante: false, 
+    liquidoDireccion: false, 
+    aguaLimpiaParabrisas: false 
+  },
+  accesorios: { 
+    radio: false, 
+    encendedor: false, 
+    espejos: false, 
+    plumillas: false, 
+    tapaBencina: false, 
+    tapaRueda: false, 
+    gata: false, 
+    llaveRueda: false, 
+    triangulos: false, 
+    extintor: false, 
+    botiquin: false, 
+    chaleco: false 
+  },
+  neumaticos: { 
+    delanteroDerecho: false, 
+    delanteroIzquierdo: false, 
+    traseroDerecho: false, 
+    traseroIzquierdo: false, 
+    repuesto: false 
+  },
+  exterior: { 
+    estado: '', 
+    fotos: [] 
+  },
+  objetosValor: { 
+    detalle: '', 
+    fotos: [] 
+  },
+  combustible: 0,
+  kilometraje: 0,
+  lucesTablero: '',
+  observacionesGenerales: '',
+  firmaCliente: '',
+};

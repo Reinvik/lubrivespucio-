@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GarageSettings } from '../types';
-import { Save, Building2, MapPin, Phone, MessageSquare, Loader2, CheckCircle, Palette, Download, FileSpreadsheet, Lock, Eye, EyeOff, ScrollText, Puzzle, ExternalLink, HelpCircle } from 'lucide-react';
+import { Save, Building2, MapPin, Phone, MessageSquare, Loader2, CheckCircle, Palette, Download, FileSpreadsheet, Lock, Eye, EyeOff, ScrollText, Puzzle, ExternalLink, HelpCircle, CircleDollarSign } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Ticket, Part } from '../types';
 import { cn } from '../lib/utils';
@@ -26,11 +26,12 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
         logo_y_offset: 50,
         theme_menu_text: '#a1a1aa',
         theme_menu_highlight: '#10b981',
+        theme_button_color: '#059669',
         company_slug: ''
     });
     const [loading, setLoading] = useState(false);
     const [saved, setSaved] = useState(false);
-    const [activeTab, setActiveTab] = useState<'general' | 'design' | 'security' | 'export' | 'manual' | 'extension'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'design' | 'pricing' | 'security' | 'export' | 'manual' | 'extension'>('general');
     
     // Password Change State
     const [passwordData, setPasswordData] = useState({
@@ -56,7 +57,30 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                 logo_y_offset: settings.logo_y_offset ?? 50,
                 theme_menu_text: settings.theme_menu_text || '#a1a1aa',
                 theme_menu_highlight: settings.theme_menu_highlight || '#10b981',
-                company_slug: settings.company_slug || ''
+                theme_button_color: settings.theme_button_color || '#059669',
+                company_slug: settings.company_slug || '',
+                pricing: settings.pricing || {
+                    oil_simple: {
+                        "20W50": 29000,
+                        "15W40": 30000,
+                        "10W40 S": 32000,
+                        "10W40 SM": 35000,
+                        "5W30 SM": 46000,
+                        "5W30 SN": 52000,
+                        "5W30 DPF": 62000
+                    },
+                    oil_full: {
+                        "20W50": 49000,
+                        "15W40": 50000,
+                        "10W40 S": 52000,
+                        "10W40 SM": 55000,
+                        "5W30 SM": 66000,
+                        "5W30 SN": 72000,
+                        "5W30 DPF": 82000
+                    },
+                    brake_pads: 30000,
+                    inspection: 35000
+                }
             });
         }
     }, [settings]);
@@ -115,7 +139,7 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
             Notas: t.notes || ''
         }));
 
-        downloadExcel(exportData, 'tickets_roma_center');
+        downloadExcel(exportData, 'tickets_vespucio');
     };
 
     const handleExportParts = () => {
@@ -132,7 +156,7 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
             Precio: p.price
         }));
 
-        downloadExcel(exportData, 'repuestos_roma_center');
+        downloadExcel(exportData, 'repuestos_vespucio');
     };
 
     return (
@@ -154,6 +178,13 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                         className={cn("flex items-center gap-2 px-4 py-2 rounded-xl border font-bold text-sm transition-all", activeTab === 'design' ? "bg-zinc-900 border-zinc-900 text-white" : "bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300")}
                     >
                         <Palette className="w-4 h-4" /> Diseño
+                    </button>
+                    <button 
+                        type="button"
+                        onClick={() => setActiveTab('pricing')}
+                        className={cn("flex items-center gap-2 px-4 py-2 rounded-xl border font-bold text-sm transition-all", activeTab === 'pricing' ? "bg-zinc-900 border-zinc-900 text-white" : "bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300")}
+                    >
+                        <CircleDollarSign className="w-4 h-4" /> Precios
                     </button>
                     <button 
                         type="button"
@@ -199,7 +230,7 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                         <input
                             required
                             type="text"
-                            placeholder="Ej: Nexus Garage"
+                            placeholder="Ej: Lubricentro Vespucio"
                              className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 outline-none transition-all text-zinc-800 focus:ring-2"
                             style={{ 
                                 borderColor: formData.theme_menu_highlight && formData.theme_menu_highlight !== '#10b981' ? `${formData.theme_menu_highlight}40` : undefined,
@@ -366,6 +397,103 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                 </div>
 
                 </>
+                ) : activeTab === 'pricing' ? (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div>
+                        <h3 className="text-lg font-bold text-zinc-900">Gestión de Precios</h3>
+                        <p className="text-sm text-zinc-500 mt-1">Configura los precios de los servicios de Lubricentro. Estos se verán reflejados en la Landing Page.</p>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* Categoría 1: Simple */}
+                        <div className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
+                            <h4 className="font-bold text-zinc-900 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                Categoría 1: Simple (Aceite + Filtro Aceite)
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {Object.keys(formData.pricing?.oil_simple || {}).map((oil) => (
+                                    <div key={`simple-${oil}`} className="space-y-1">
+                                        <label className="text-xs font-semibold text-zinc-500">{oil}</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
+                                            <input
+                                                type="number"
+                                                className="w-full pl-7 pr-4 py-2 rounded-lg border border-zinc-200 text-sm font-mono"
+                                                value={formData.pricing?.oil_simple?.[oil] || 0}
+                                                onChange={(e) => {
+                                                    const newPricing = { ...formData.pricing };
+                                                    if (newPricing.oil_simple) {
+                                                        newPricing.oil_simple[oil] = parseInt(e.target.value) || 0;
+                                                        setFormData({ ...formData, pricing: newPricing as any });
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Categoría 2: Full */}
+                        <div className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
+                            <h4 className="font-bold text-zinc-900 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                Categoría 2: Full (Aceite + Todos los Filtros)
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {Object.keys(formData.pricing?.oil_full || {}).map((oil) => (
+                                    <div key={`full-${oil}`} className="space-y-1">
+                                        <label className="text-xs font-semibold text-zinc-500">{oil}</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
+                                            <input
+                                                type="number"
+                                                className="w-full pl-7 pr-4 py-2 rounded-lg border border-zinc-200 text-sm font-mono"
+                                                value={formData.pricing?.oil_full?.[oil] || 0}
+                                                onChange={(e) => {
+                                                    const newPricing = { ...formData.pricing };
+                                                    if (newPricing.oil_full) {
+                                                        newPricing.oil_full[oil] = parseInt(e.target.value) || 0;
+                                                        setFormData({ ...formData, pricing: newPricing as any });
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Otros Servicios */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
+                                <h4 className="font-bold text-zinc-900 flex items-center gap-2">Pastillas de Frenos</h4>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
+                                    <input
+                                        type="number"
+                                        className="w-full pl-7 pr-4 py-2 rounded-lg border border-zinc-200 text-sm font-mono"
+                                        value={formData.pricing?.brake_pads || 0}
+                                        onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, brake_pads: parseInt(e.target.value) || 0 } as any })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
+                                <h4 className="font-bold text-zinc-900 flex items-center gap-2">Inspección Preventiva</h4>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
+                                    <input
+                                        type="number"
+                                        className="w-full pl-7 pr-4 py-2 rounded-lg border border-zinc-200 text-sm font-mono"
+                                        value={formData.pricing?.inspection || 0}
+                                        onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, inspection: parseInt(e.target.value) || 0 } as any })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 ) : activeTab === 'export' ? (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <p className="text-sm text-zinc-600 mb-6">Exporta tus datos en formato Excel (.xlsx) para usarlos en aplicaciones de cálculo.</p>
@@ -580,6 +708,20 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                                 <span className="font-mono text-zinc-600 text-sm uppercase bg-white border border-zinc-200 px-3 py-1.5 rounded-lg">{formData.theme_menu_highlight || '#10b981'}</span>
                             </div>
                         </div>
+
+                        <div className="space-y-3 p-5 rounded-2xl border border-zinc-200 bg-zinc-50">
+                            <label className="text-sm font-semibold text-zinc-900 block">Color Primario de Botones</label>
+                            <p className="text-xs text-zinc-500 pb-2">Color de fondo para botones de acción principal (ej: "Nuevo Ingreso").</p>
+                            <div className="flex items-center gap-4">
+                                <input 
+                                    type="color" 
+                                    value={formData.theme_button_color || '#059669'} 
+                                    onChange={e => setFormData({ ...formData, theme_button_color: e.target.value })}
+                                    className="w-12 h-12 rounded bg-transparent cursor-pointer"
+                                />
+                                <span className="font-mono text-zinc-600 text-sm uppercase bg-white border border-zinc-200 px-3 py-1.5 rounded-lg">{formData.theme_button_color || '#059669'}</span>
+                            </div>
+                        </div>
                      </div>
 
                      <div className="pt-6 border-t border-zinc-100 space-y-4">
@@ -622,7 +764,7 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
                 </div>
                 )}
 
-                {activeTab !== 'export' && activeTab !== 'manual' && activeTab !== 'extension' && (
+                { (activeTab === 'general' || activeTab === 'design' || activeTab === 'pricing' || activeTab === 'security') && (
                 <div className="pt-6 flex items-center justify-between border-t border-zinc-100">
                     {saved && (
                         <span className="text-sm font-medium flex items-center gap-1.5 animate-in fade-in slide-in-from-left-2" style={{ color: formData.theme_menu_highlight }}>

@@ -147,9 +147,12 @@ export function AddGarantiaModal({ isOpen, onClose, onAdd, onUpdate, initialData
               type="number"
               min="0"
               className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
-              value={formData.monto || ''}
-              onChange={e => setFormData({ ...formData, monto: parseInt(e.target.value) || 0 })}
-            />
+                value={formData.monto || ''}
+                onChange={e => {
+                  const val = parseInt(e.target.value);
+                  setFormData({ ...formData, monto: isNaN(val) ? 0 : val });
+                }}
+              />
           </div>
 
           <div>

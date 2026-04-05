@@ -41,6 +41,8 @@ interface KanbanBoardProps {
   onUpdateStatus: (id: string, status: TicketStatus, changedBy?: string, paymentMethod?: PaymentMethod, documentType?: DocumentType, rutEmpresa?: string, razonSocial?: string, transferData?: string) => void;
   onShowHistory?: (ticket: Ticket) => void;
   onShowCRM?: (ticket: Ticket) => void;
+  onShowChecklist?: (ticket: Ticket) => void;
+  onShowInspeccion?: (ticket: Ticket) => void;
   onEditTicket: (ticket: Ticket) => void;
   onDeleteTicket?: (id: string) => Promise<void>;
   onAddTicket: () => void;
@@ -58,9 +60,10 @@ interface KanbanBoardProps {
 }
 
 const COLUMNS: { id: string; label: string; color: string; statuses: TicketStatus[] }[] = [
-  { id: 'por-atender', label: 'Por Atender', color: 'bg-zinc-200 text-zinc-700', statuses: ['Ingresado', 'En Espera'] },
-  { id: 'mantencion', label: 'En Mantención', color: 'bg-blue-100 text-blue-800', statuses: ['Elevador 1', 'Elevador 2', 'En Mantención', 'En Reparación'] },
-  { id: 'Listo para Entrega', label: 'Listo para Entrega', color: 'bg-emerald-100 text-emerald-800', statuses: ['Listo para Entrega'] },
+  { id: 'por-atender', label: 'Ingreso', color: 'bg-zinc-200 text-zinc-700', statuses: ['Ingreso'] },
+  { id: 'en-espera', label: 'En espera', color: 'bg-orange-100 text-orange-800', statuses: ['En espera'] },
+  { id: 'mantencion', label: 'En Mantención', color: 'bg-blue-100 text-blue-800', statuses: ['En Mantención'] },
+  { id: 'Listo para entrega', label: 'Listo para entrega', color: 'bg-emerald-100 text-emerald-800', statuses: ['Listo para entrega'] },
   { id: 'Finalizado', label: 'Finalizado', color: 'bg-zinc-800 text-zinc-300', statuses: ['Finalizado'] },
 ];
 
@@ -68,6 +71,10 @@ export function KanbanBoard({
   tickets, 
   mechanics, 
   onUpdateStatus, 
+  onShowHistory,
+  onShowCRM,
+  onShowChecklist,
+  onShowInspeccion,
   onEditTicket, 
   onDeleteTicket,
   onAddTicket, 
@@ -130,14 +137,15 @@ export function KanbanBoard({
 
     const isFinished = t.status === 'Finalizado' || t.status === 'Entregado';
     const completionDate = getEffectiveDate(t);
+    const entryDay = t.entry_date.split('T')[0];
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const isViewingToday = viewDate === todayStr;
 
-    // RULE 1: If viewing "Today", show all "Active" tickets (they represent current load)
+    // RULE 1: If viewing "Today", show all "Active" tickets (current workload)
     if (isViewingToday && !isFinished) return true;
 
-    // RULE 2: If viewing a specific date, show tickets that were active OR finished on that day
-    return completionDate === viewDate;
+    // RULE 2: If viewing a specific date, show if it was entered that day OR completed that day
+    return entryDay === viewDate || completionDate === viewDate;
   }).sort((a, b) => {
     const dateA = new Date(a.entry_date).getTime();
     const dateB = new Date(b.entry_date).getTime();
@@ -145,7 +153,7 @@ export function KanbanBoard({
   });
 
   const [softLockPending, setSoftLockPending] = useState<{id: string, status: TicketStatus, mechanic: string} | null>(null);
-  const [finishConfirmPending, setFinishConfirmPending] = useState<{id: string, action: string} | null>(null);
+  const [finishConfirmPending, setFinishConfirmPending] = useState<Ticket | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -165,11 +173,18 @@ export function KanbanBoard({
     const reminderId = e.dataTransfer.getData('application/reminder-id');
     const userAction = selectedMechanic || 'Recepción/Admin';
 
+    const mapStatus = (statusId: string): TicketStatus => {
+      if (statusId === 'por-atender') return 'Ingreso';
+      if (statusId === 'en-espera') return 'En espera';
+      if (statusId === 'mantencion') return 'En Mantención';
+      if (statusId === 'Listo para entrega') return 'Listo para entrega';
+      return statusId as TicketStatus;
+    };
+
     if (reminderId && onPromoteReminder) {
       const reminder = reminders.find(r => r.id === reminderId);
       if (reminder) {
-        let targetStatus: TicketStatus = statusId as TicketStatus;
-        if (statusId === 'por-atender') targetStatus = 'En Espera';
+        const targetStatus = mapStatus(statusId);
         onPromoteReminder(reminder, targetStatus);
       }
       setDraggedTicketId(null);
@@ -178,28 +193,11 @@ export function KanbanBoard({
 
     if (id && draggedTicketId === id) {
       const ticket = tickets.find(t => t.id === id);
-      
-      let targetStatus: TicketStatus = statusId as TicketStatus;
-      if (statusId === 'por-atender') targetStatus = 'En Espera';
-
-      // 1-ticket limit for Elevators
-      if (targetStatus === 'Elevador 1' || targetStatus === 'Elevador 2') {
-        const existingInSlot = tickets.filter(t => 
-          (targetStatus === 'Elevador 1' ? ['Elevador 1', 'En Mantención', 'En Reparación'].includes(t.status) : t.status === 'Elevador 2')
-        );
-        
-        // If slot is full and it's not the same ticket moving within the same logic
-        if (existingInSlot.length >= 1 && !existingInSlot.some(t => t.id === id)) {
-          // You could add a toast here if available
-          setDraggedTicketId(null);
-          return;
-        }
-      }
+      const targetStatus = mapStatus(statusId);
 
       if (targetStatus === 'Finalizado') {
-        const ticket = tickets.find(t => t.id === id);
         if (ticket && ticket.status !== 'Finalizado') {
-          setFinishConfirmPending({ id, action: userAction });
+          setFinishConfirmPending(ticket);
           return;
         }
       }
@@ -299,8 +297,10 @@ export function KanbanBoard({
                 onDragStart={handleDragStart}
                 onEdit={onEditTicket}
                 onDelete={(t) => setDeleteConfirmTicket(t)}
-                onShowHistory={setHistoryTicket}
-                onShowCRM={setCrmTicket}
+                onShowHistory={onShowHistory || setHistoryTicket}
+                onShowCRM={onShowCRM || setCrmTicket}
+                onShowChecklist={onShowChecklist}
+                onShowInspeccion={onShowInspeccion}
               />
             ))}
           </div>
@@ -336,6 +336,16 @@ export function KanbanBoard({
               onClick={() => setZoomLevel(prev => Math.min(1, +(prev + 0.05).toFixed(2)))}
               className="px-1.5 py-0.5 hover:bg-white rounded transition-colors text-zinc-600 text-xs font-bold"
             >+</button>
+            <div className="w-[1px] h-3 bg-zinc-300 mx-0.5"></div>
+            <button
+              onClick={() => setZoomLevel(zoomLevel === 0.4 ? 1 : 0.4)}
+              className={cn(
+                "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter transition-all",
+                zoomLevel === 0.4 ? "bg-amber-100 text-amber-700" : "hover:bg-white text-zinc-500"
+              )}
+            >
+              🔭 Panorama
+            </button>
           </div>
 
           <button
@@ -444,66 +454,6 @@ export function KanbanBoard({
             {COLUMNS.map((column) => {
               const columnTickets = filteredTickets.filter((t) => column.statuses.includes(t.status));
 
-              if (column.id === 'mantencion') {
-                const e1Tickets = columnTickets.filter(t => ['Elevador 1', 'En Mantención', 'En Reparación'].includes(t.status));
-                const e2Tickets = columnTickets.filter(t => t.status === 'Elevador 2');
-
-                return (
-                  <div
-                    key={column.id}
-                    style={{ minWidth: zoomLevel < 0.6 ? `${280 * zoomLevel * 1.5}px` : '280px' }}
-                    className="flex-1 bg-zinc-100/30 rounded-2xl p-3 flex flex-col border border-zinc-200/50 snap-center lg:snap-align-none shadow-sm"
-                  >
-                    <div className="flex items-center justify-between mb-3 px-1">
-                      <div className="flex items-center gap-2">
-                        <span className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase shadow-sm", column.color)}>
-                          {column.label}
-                        </span>
-                        <span className="text-xs font-bold text-zinc-500 bg-white px-2 py-0.5 rounded-full shadow-sm border border-zinc-200">
-                          {columnTickets.length}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3 flex-1">
-                      {/* Elevador 1 Slot */}
-                      <div className={cn(
-                        "flex-1 flex flex-col min-h-[140px] rounded-xl border-2 border-dashed transition-all p-2",
-                        e1Tickets.length > 0 ? "border-blue-200 bg-blue-50/20" : "border-zinc-200 bg-zinc-50/50"
-                      )}>
-                        <div className="flex items-center justify-between mb-1 px-1">
-                          <span className="text-[9px] font-black text-zinc-400 uppercase tracking-tighter">Elevador 1</span>
-                          <span className={cn(
-                            "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
-                            e1Tickets.length >= 1 ? "bg-amber-100 text-amber-700" : "bg-zinc-200 text-zinc-500"
-                          )}>
-                            {e1Tickets.length}/1
-                          </span>
-                        </div>
-                        {renderTicketList(e1Tickets, 'Elevador 1')}
-                      </div>
-
-                      {/* Elevador 2 Slot */}
-                      <div className={cn(
-                        "flex-1 flex flex-col min-h-[140px] rounded-xl border-2 border-dashed transition-all p-2",
-                        e2Tickets.length > 0 ? "border-indigo-200 bg-indigo-50/20" : "border-zinc-200 bg-zinc-50/50"
-                      )}>
-                        <div className="flex items-center justify-between mb-1 px-1">
-                          <span className="text-[9px] font-black text-zinc-400 uppercase tracking-tighter">Elevador 2</span>
-                          <span className={cn(
-                            "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
-                            e2Tickets.length >= 1 ? "bg-amber-100 text-amber-700" : "bg-zinc-200 text-zinc-500"
-                          )}>
-                            {e2Tickets.length}/1
-                          </span>
-                        </div>
-                        {renderTicketList(e2Tickets, 'Elevador 2')}
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
               return (
                 <div
                   key={column.id}
@@ -555,9 +505,20 @@ export function KanbanBoard({
 
       <FinishTicketModal
         isOpen={!!finishConfirmPending}
+        ticket={finishConfirmPending}
+        tickets={tickets}
         onConfirm={(method, documentType, rutEmpresa, razonSocial, transferData) => {
           if (finishConfirmPending) {
-            onUpdateStatus(finishConfirmPending.id, 'Finalizado', finishConfirmPending.action, method, documentType, rutEmpresa, razonSocial, transferData);
+            onUpdateStatus(
+              finishConfirmPending.id, 
+              'Finalizado', 
+              selectedMechanic || 'Recepción/Admin', 
+              method, 
+              documentType, 
+              rutEmpresa, 
+              razonSocial, 
+              transferData
+            );
             setFinishConfirmPending(null);
           }
         }}
@@ -587,6 +548,7 @@ export function KanbanBoard({
         isOpen={crmTicket !== null}
         onClose={() => setCrmTicket(null)}
         ticket={crmTicket}
+        allTickets={tickets}
         onUpdateNotes={onUpdateNotes}
       />
 

@@ -47,15 +47,15 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
     if (!settings?.company_id) return;
     try {
       const [{ count: allCount }, { count: laborCount }, { count: alertsCount }] = await Promise.all([
-        supabaseGarage.from('romaspa_parts').select('*', { count: 'exact', head: true })
+        supabaseGarage.from('garage_parts').select('*', { count: 'exact', head: true })
           .eq('company_id', settings.company_id)
           .not('name', 'ilike', '%servicio%')
           .not('name', 'ilike', '%m.o.%')
           .not('name', 'ilike', '%mano de obra%'),
-        supabaseGarage.from('romaspa_parts').select('*', { count: 'exact', head: true })
+        supabaseGarage.from('garage_parts').select('*', { count: 'exact', head: true })
           .eq('company_id', settings.company_id)
           .or('name.ilike.%servicio%,name.ilike.%m.o.%,name.ilike.%mano de obra%'),
-        supabaseGarage.from('vw_romaspa_parts_alerts').select('*', { count: 'exact', head: true })
+        supabaseGarage.from('vw_garage_parts_alerts').select('*', { count: 'exact', head: true })
           .eq('company_id', settings.company_id)
       ]);
 
@@ -81,9 +81,9 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
 
       let query;
       if (tab === 'alerts') {
-        query = supabaseGarage.from('vw_romaspa_parts_alerts').select('*').eq('company_id', settings.company_id);
+        query = supabaseGarage.from('vw_garage_parts_alerts').select('*').eq('company_id', settings.company_id);
       } else {
-        query = supabaseGarage.from('romaspa_parts').select('*').eq('company_id', settings.company_id);
+        query = supabaseGarage.from('garage_parts').select('*').eq('company_id', settings.company_id);
         if (tab === 'labor') {
           query = query.or('name.ilike.%servicio%,name.ilike.%m.o.%,name.ilike.%mano de obra%');
         } else {
@@ -211,7 +211,7 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
     if (window.confirm(`¿Está seguro de que desea eliminar ${selectedIds.size} ítems seleccionados?`)) {
       try {
         setIsLoading(true);
-        const { error } = await supabaseGarage.from('romaspa_parts').delete().in('id', Array.from(selectedIds));
+        const { error } = await supabaseGarage.from('garage_parts').delete().in('id', Array.from(selectedIds));
         if (error) throw error;
         
         setSelectedIds(new Set());
@@ -316,7 +316,8 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 text-white rounded-xl font-medium transition-all shadow-sm active:scale-95 hover:brightness-110"
+            style={{ backgroundColor: 'var(--primary)' }}
           >
             <Plus className="w-5 h-5" />
             Nuevo Item
@@ -394,7 +395,8 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
                    <input
                      type="text"
                      placeholder="Buscar por nombre o código..."
-                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all text-sm"
+                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 focus:ring-2 outline-none transition-all text-sm"
+                     style={{ '--tw-ring-color': 'var(--primary-shadow)' } as React.CSSProperties}
                      value={searchInput}
                      onChange={e => setSearchInput(e.target.value)}
                    />
@@ -419,7 +421,8 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
                                  <th className="px-6 py-4 w-10">
                                    <input 
                                      type="checkbox" 
-                                     className="w-4 h-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                                     className="w-4 h-4 rounded border-zinc-300 focus:ring-2"
+                                     style={{ color: 'var(--primary)', '--tw-ring-color': 'var(--primary-shadow)' } as React.CSSProperties}
                                      checked={selectedIds.size > 0 && selectedIds.size === inventoryParts.length}
                                      onChange={toggleSelectAll}
                                    />
@@ -482,7 +485,8 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
                            <div className="flex gap-2">
                              <button
                                onClick={() => handleEdit(part)}
-                               className="text-emerald-600 font-extrabold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                               className="font-extrabold text-xs px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                               style={{ color: 'var(--primary)', backgroundColor: 'var(--primary-shadow)' }}
                              >
                                Editar
                              </button>
@@ -616,7 +620,8 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
                                <div className="flex items-center justify-center gap-2">
                                  <button
                                    onClick={() => handleEdit(part)}
-                                   className="text-emerald-600 hover:text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg transition-all active:scale-95"
+                                   className="font-bold text-xs px-3 py-1.5 rounded-lg transition-all active:scale-95"
+                                   style={{ color: 'var(--primary)', backgroundColor: 'var(--primary-shadow)' }}
                                  >
                                    Editar
                                  </button>
@@ -721,7 +726,7 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
                     </div>
                     <button
                       onClick={() => {
-                        const message = `Hola Roma Center, necesito re-stock de:\n\n*ID:* ${part.id}\n*Repuesto:* ${part.name}\n*Stock Actual:* ${part.stock}\n*Mínimo Requerido:* ${part.min_stock}\n\nFavor cotizar.`;
+                        const message = `Hola Lubricentro Vespucio, necesito re-stock de:\n\n*ID:* ${part.id}\n*Repuesto:* ${part.name}\n*Stock Actual:* ${part.stock}\n*Mínimo Requerido:* ${part.min_stock}\n\nFavor cotizar.`;
                         window.open(`https://wa.me/${settings?.phone || ''}?text=${encodeURIComponent(message)}`, '_blank');
                       }}
                       className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-black text-white text-sm font-bold rounded-xl transition-all shadow-md active:scale-95"

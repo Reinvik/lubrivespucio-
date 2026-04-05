@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Wrench, Package, Users, Settings, LogOut, Bell, Calendar, Menu, X, BarChart3, Search, CalendarCheck, Plus, RefreshCw, ShoppingCart, Sparkles, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Wrench, Package, Users, Settings, LogOut, Bell, Calendar, Menu, X, BarChart3, Search, CalendarCheck, Plus, RefreshCw, ShoppingCart, Sparkles, ShieldCheck, MessageCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -42,8 +42,9 @@ export function Layout({
     setLogoError(false);
   }, [settings?.logo_url]);
 
-  const menuTextColor = settings?.theme_menu_text || branding?.theme_menu_text || '#a1a1aa';
-  const menuHighlightColor = settings?.theme_menu_highlight || branding?.theme_menu_highlight || '#D6A621';
+  const menuTextColor = settings?.theme_menu_text || branding?.theme_menu_text || '#71717a'; // Neutral gray for unselected items
+  const menuHighlightColor = settings?.theme_menu_highlight || branding?.theme_menu_highlight || '#10b981'; // Emerald 500
+  const primaryButtonColor = settings?.theme_button_color || '#059669'; // Emerald 600 default
 
   // Añadir opacidad de 10% (aprox 1A) a highlightColor si tiene formato hexadecimal
   const highlightBg = menuHighlightColor.startsWith('#') && menuHighlightColor.length === 7 
@@ -59,6 +60,7 @@ export function Layout({
     { id: 'customers', label: 'Clientes', icon: Users },
     { id: 'mechanics', label: 'Mecánicos', icon: Wrench },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
+    { id: 'messages', label: 'Mensajes', icon: MessageCircle },
     { id: 'ai_consultant', label: 'Consultor IA', icon: Sparkles },
   ];
 
@@ -71,8 +73,18 @@ export function Layout({
     setIsSidebarOpen(false);
   };
 
+  const primaryShadow = primaryButtonColor.startsWith('#') && primaryButtonColor.length === 7 
+    ? `${primaryButtonColor}33` 
+    : 'rgba(16, 185, 129, 0.2)';
+
   return (
-    <div className="flex h-screen w-full bg-zinc-50 text-zinc-900 font-sans overflow-hidden">
+    <div 
+      className="flex h-screen w-full bg-zinc-50 text-zinc-900 font-sans overflow-hidden"
+      style={{ 
+        '--primary': primaryButtonColor,
+        '--primary-shadow': primaryShadow
+      } as React.CSSProperties}
+    >
       {/* Sidebar Overlay (Mobile) */}
       {isSidebarOpen && (
         <div
@@ -99,11 +111,11 @@ export function Layout({
                 />
               ) : (
                 <div className="w-16 h-16 bg-black rounded-xl flex items-center justify-center p-1 border border-zinc-700">
-                  <img src="/logo3.png" alt="Roma Center SPA" className="w-14 h-14 object-contain" />
+                  <img src="/logo3.png" alt="Lubricentro Vespucio" className="w-14 h-14 object-contain" />
                 </div>
               )}
             </div>
-            <span className="font-bold text-lg tracking-tight leading-tight">{settings?.workshop_name || 'Roma Center SPA'}</span>
+            <span className="font-bold text-lg tracking-tight leading-tight">{settings?.workshop_name || 'Lubricentro Vespucio'}</span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -251,10 +263,11 @@ export function Layout({
             {activeTab === 'dashboard' && (
               <button
                 onClick={onAddTicket}
-                className="flex items-center justify-center w-9 h-9 sm:w-auto sm:px-4 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg sm:rounded-xl font-medium transition-colors shadow-sm shrink-0"
+                style={{ backgroundColor: primaryButtonColor }}
+                className="flex items-center justify-center w-9 h-9 sm:w-auto sm:px-4 sm:py-2 hover:brightness-110 text-white rounded-lg sm:rounded-xl font-medium transition-all shadow-md shrink-0 active:scale-95"
               >
                 <Plus className="w-5 h-5" />
-                <span className="hidden sm:inline">Nuevo Ingreso</span>
+                <span className="hidden sm:inline ml-2">Nuevo Ingreso</span>
               </button>
             )}
           </div>
@@ -266,11 +279,11 @@ export function Layout({
           <div className="fixed top-4 right-4 z-50 opacity-40 hover:opacity-100 transition-opacity">
             <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border border-zinc-200 shadow-lg scale-90 md:scale-100">
                <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center p-1 border border-zinc-700">
-                  <img src="/logo3.png" alt="Roma Center SPA" className="w-8 h-8 object-contain" />
+                  <img src="/logo3.png" alt="Lubricentro Vespucio" className="w-8 h-8 object-contain" />
                </div>
                <div className="flex flex-col">
-                  <span className="text-sm font-black text-zinc-900 leading-none">ROMA CENTER</span>
-                  <span className="text-[8px] font-bold text-zinc-500 tracking-[0.15em]">LUBRICANTES SPA</span>
+                  <span className="text-sm font-black text-zinc-900 leading-none uppercase">LUBRICENTRO</span>
+                  <span className="text-[8px] font-bold text-zinc-500 tracking-[0.15em] uppercase">VESPUCIO</span>
                </div>
             </div>
           </div>

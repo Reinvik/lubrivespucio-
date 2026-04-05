@@ -16,40 +16,48 @@ import { Ticket, Reminder, TicketStatus } from './types';
 import { Mechanics } from './components/Mechanics';
 import { AddMechanicModal } from './components/AddMechanicModal';
 import { EditTicketModal } from './components/EditTicketModal';
+import { InspeccionModal } from './components/InspeccionModal';
 import { SettingsForm } from './components/SettingsForm';
 import { Agenda } from './components/Agenda';
+import { ChecklistIngresoModal } from './components/ChecklistIngresoModal';
+import { supabase, supabaseGarage } from './lib/supabase';
+import LandingPage from './components/LandingPage';
 import { PublicBookingModal } from './components/PublicBookingModal';
-import { LandingPage } from './components/LandingPage';
 import { Sales } from './components/Sales';
 import { SalaVentas } from './components/SalaVentas';
 import { AIConsultant } from './components/AIConsultant';
 import { Garantias } from './components/Garantias';
+import { MessagesSettings } from './components/MessagesSettings';
 
-type ViewState = 'landing' | 'login' | 'customer' | 'dashboard';
+type ViewState = 'landing' | 'customer' | 'dashboard';
 
 export default function App() {
   const [view, setView] = useState<ViewState>(() => {
-    const saved = localStorage.getItem('roma_garage_view');
+    const saved = localStorage.getItem('garage_garage_view');
     return (saved as ViewState) || 'landing';
   });
   const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('roma_garage_tab') || 'dashboard';
+    return localStorage.getItem('garage_garage_tab') || 'dashboard';
   });
   
   useEffect(() => {
-    localStorage.setItem('roma_garage_view', view);
+    localStorage.setItem('garage_garage_view', view);
   }, [view]);
 
   useEffect(() => {
-    localStorage.setItem('roma_garage_tab', activeTab);
+    localStorage.setItem('garage_garage_tab', activeTab);
   }, [activeTab]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddMechanicModalOpen, setIsAddMechanicModalOpen] = useState(false);
+  const [isInspeccionModalOpen, setIsInspeccionModalOpen] = useState(false);
+  const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [publicBranding, setPublicBranding] = useState<any>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [inspeccionTicket, setInspeccionTicket] = useState<Ticket | null>(null);
+  const [checklistTicket, setChecklistTicket] = useState<Ticket | null>(null);
   const [searchedPatente, setSearchedPatente] = useState<string | null>(null);
   const [currentCustomerTicket, setCurrentCustomerTicket] = useState<Ticket | null>(null);
   const [currentCustomerTickets, setCurrentCustomerTickets] = useState<Ticket[]>([]);
@@ -93,24 +101,33 @@ export default function App() {
   useEffect(() => {
     // Detect public branding from URL slug (?t=slug)
     const params = new URLSearchParams(window.location.search);
-    const slug = params.get('t') || 'roma-spa';
+    const slug = params.get('t') || 'lubri-vespucio';
     if (slug) {
       fetchPublicSettingsBySlug(slug).then(data => {
         setPublicBranding(data || {
-          theme_menu_highlight: '#D6A621',
-          theme_menu_text: '#a1a1aa',
-          workshop_name: 'Roma Center SPA'
+          theme_menu_highlight: '#10b981',
+          theme_menu_text: '#34d399',
+          workshop_name: 'Lubricentro Vespucio'
         });
       }).catch(err => {
         console.error('Error fetching public branding:', err);
         setPublicBranding({
-          theme_menu_highlight: '#D6A621',
-          theme_menu_text: '#a1a1aa',
-          workshop_name: 'Roma Center SPA'
+          theme_menu_highlight: '#10b981',
+          theme_menu_text: '#34d399',
+          workshop_name: 'Lubricentro Vespucio'
         });
       });
     }
   }, [fetchPublicSettingsBySlug]);
+
+  // Handle direct links with patente (?p=BBBB00)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const patente = params.get('p');
+    if (patente && publicBranding && view === 'landing') {
+      handleCustomerSearch(patente);
+    }
+  }, [publicBranding, view]);
 
   const handleEditTicket = (ticket: Ticket) => {
     setEditingTicket(ticket);
@@ -121,10 +138,22 @@ export default function App() {
     setView('dashboard');
   };
 
+  const handleAuthLogin = async (email: string, pass: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
+    if (!error && data.user) {
+      handleLogin();
+    }
+    return { error };
+  };
+
   const handleCustomerSearch = async (patenteOrPhone: string) => {
     try {
-      const tickets = await searchTicketsHistory(patenteOrPhone);
-      const reminder = await fetchActiveReminder(patenteOrPhone);
+      const targetCompanyId = publicBranding?.company_id;
+      const tickets = await searchTicketsHistory(patenteOrPhone, targetCompanyId);
+      const reminder = await fetchActiveReminder(patenteOrPhone, targetCompanyId);
 
       if (tickets.length > 0) {
         // Ordenar: No finalizados primero, luego por fecha de creación desc
@@ -185,28 +214,56 @@ export default function App() {
     }
   };
 
+  const handleUpdateVehicleNotes = async (id: string, notes: string) => {
+    const ticket = tickets.find(t => t.id === id || t.patente === id);
+    const patente = ticket?.patente || id;
+    
+    // Optimistic update
+    const updatedTickets = tickets.map(t => {
+      const tNorm = (t.patente || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const targetNorm = (patente || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (tNorm === targetNorm && targetNorm) {
+        return { ...t, vehicle_notes: notes };
+      }
+      return t;
+    });
+    // Since we don't have a setTickets setter in the component (it's in the store), 
+    // we'll rely on updateTicket for the current one immediately which triggers a re-render
+    // and then the bulk update in background + refreshData.
+    
+    if (patente) {
+      const normPatente = patente.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const { error } = await supabaseGarage
+        .from('garage_tickets')
+        .update({ vehicle_notes: notes })
+        .eq('patente', normPatente)
+        .eq('company_id', profile?.company_id);
+      
+      if (error) {
+        console.error('Error updating vehicle notes:', error);
+        await updateTicket(id, { vehicle_notes: notes });
+      } else {
+        await updateTicket(id, { vehicle_notes: notes }); // Triggers local re-render
+        await refreshData();
+      }
+    } else {
+      await updateTicket(id, { vehicle_notes: notes });
+    }
+  };
+
   if (view === 'landing') {
     return (
-      <LandingPage 
-        onPortalAccess={() => setView('login')}
-        onAdminAccess={handleLogin}
-        onCustomerSearch={handleCustomerSearch}
-        fetchCompanies={fetchCompanies}
-        onAddReminder={addIntelligentReminder}
-        fetchOccupied={fetchOccupiedReminders}
-        fetchVehicleInfo={fetchPublicVehicleInfo}
-        branding={publicBranding}
-      />
-    );
-  }
-
-  if (view === 'login') {
-    return (
       <>
-        <Login 
-          onLogin={handleLogin} 
-          onCustomerSearch={handleCustomerSearch} 
+        <LandingPage 
+          onPortalAccess={() => {}} // No longer used as separate view
+          onAdminAccess={handleLogin}
+          onCustomerSearch={handleCustomerSearch}
           onOpenBooking={() => setIsBookingModalOpen(true)}
+          onLogin={handleAuthLogin}
+          fetchCompanies={fetchCompanies}
+          onAddReminder={addIntelligentReminder}
+          fetchOccupied={fetchOccupiedReminders}
+          fetchVehicleInfo={fetchPublicVehicleInfo}
           branding={publicBranding}
         />
         <PublicBookingModal
@@ -268,14 +325,20 @@ export default function App() {
           onDeleteTicket={deleteTicket}
           onAddTicket={() => setIsAddModalOpen(true)}
           onClearFinished={clearFinishedTickets}
-          onUpdateNotes={async (id, notes) => {
-            await updateTicket(id, { vehicle_notes: notes });
-          }}
+          onUpdateNotes={handleUpdateVehicleNotes}
           onPromoteReminder={handlePromoteReminder}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           viewDate={viewDate}
           setViewDate={setViewDate}
+          onShowChecklist={(ticket) => {
+            setChecklistTicket(ticket);
+            setIsChecklistModalOpen(true);
+          }}
+          onShowInspeccion={(ticket) => {
+            setInspeccionTicket(ticket);
+            setIsInspeccionModalOpen(true);
+          }}
           isMonitorMode={isMonitorMode}
           setIsMonitorMode={setIsMonitorMode}
         />
@@ -344,9 +407,7 @@ export default function App() {
           onAddCustomer={addCustomer}
           onUpdateVehicle={updateVehicle}
           deleteVehicle={deleteVehicle}
-          onUpdateNotes={async (id, notes) => {
-            await updateTicket(id, { vehicle_notes: notes });
-          }}
+          onUpdateNotes={handleUpdateVehicleNotes}
           searchTicket={searchTicket}
         />
       )}
@@ -391,6 +452,16 @@ export default function App() {
         </div>
       )}
 
+      {activeTab === 'messages' && (
+        <div className="p-4 lg:p-8">
+          <MessagesSettings 
+            settings={settings}
+            onUpdate={updateSettings}
+            tickets={tickets}
+          />
+        </div>
+      )}
+
       <AddTicketModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -412,6 +483,7 @@ export default function App() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         ticket={editingTicket}
+        tickets={tickets}
         mechanics={mechanics}
         parts={parts}
         onUpdate={updateTicket}
@@ -419,6 +491,34 @@ export default function App() {
         onUpdatePart={updatePart}
         settings={settings}
       />
+      
+      {isInspeccionModalOpen && inspeccionTicket && (
+        <InspeccionModal
+          isOpen={isInspeccionModalOpen}
+          onClose={() => setIsInspeccionModalOpen(false)}
+          ticket={inspeccionTicket}
+          onUpdate={async (id, updates) => {
+            await updateTicket(id, updates);
+            // Actualizar el ticket local para que el modal refleje el cambio inmediatamente si sigue abierto
+            if (inspeccionTicket && inspeccionTicket.id === id) {
+              setInspeccionTicket(prev => prev ? { ...prev, ...updates } : null);
+            }
+          }}
+        />
+      )}
+
+      {isChecklistModalOpen && checklistTicket && (
+        <ChecklistIngresoModal
+          isOpen={isChecklistModalOpen}
+          ticketPatente={checklistTicket.patente}
+          initialData={checklistTicket.ingreso_checklist}
+          onClose={() => setIsChecklistModalOpen(false)}
+          onSave={async (checklist) => {
+            await updateTicket(checklistTicket.id, { ingreso_checklist: checklist });
+            setIsChecklistModalOpen(false);
+          }}
+        />
+      )}
     </Layout>
   );
 }

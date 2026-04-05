@@ -39,7 +39,7 @@ export function Garantias({ garantias, onAdd, onUpdate, onDelete, settings }: Ga
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <h2 className="text-2xl font-bold text-zinc-800 flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-emerald-600" />
+          <ShieldCheck className="w-6 h-6" style={{ color: 'var(--primary)' }} />
           Garantías y Abonos
         </h2>
         <button
@@ -47,7 +47,8 @@ export function Garantias({ garantias, onAdd, onUpdate, onDelete, settings }: Ga
             setEditingGarantia(null);
             setIsAddModalOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors w-full sm:w-auto justify-center font-medium shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 text-white rounded-xl transition-colors w-full sm:w-auto justify-center font-medium shadow-sm hover:brightness-110"
+          style={{ backgroundColor: 'var(--primary)' }}
         >
           <Plus className="w-5 h-5" />
           Nueva Garantía/Abono
@@ -61,7 +62,8 @@ export function Garantias({ garantias, onAdd, onUpdate, onDelete, settings }: Ga
             <input
               type="text"
               placeholder="Buscar por patente o nombre..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 focus:ring-2 outline-none transition-all"
+              style={{ '--tw-ring-color': 'var(--primary-shadow)' } as React.CSSProperties}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -93,9 +95,32 @@ export function Garantias({ garantias, onAdd, onUpdate, onDelete, settings }: Ga
                   <tr key={garantia.id} className="hover:bg-zinc-50/50 transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap text-zinc-600">
                       {(() => {
-                        // Evitar problemas de zona horaria interpretando YYYY-MM-DD como local
-                        const [year, month, day] = garantia.fecha.split('-').map(Number);
-                        return format(new Date(year, month - 1, day), "dd 'de' MMMM, yyyy", { locale: es });
+                        try {
+                          if (!garantia.fecha) return '-';
+                          
+                          // Handle ISO string or YYYY-MM-DD safely
+                          let date: Date;
+                          if (typeof garantia.fecha === 'string' && garantia.fecha.includes('T')) {
+                            date = new Date(garantia.fecha);
+                          } else if (typeof garantia.fecha === 'string' && garantia.fecha.includes('-')) {
+                            const parts = garantia.fecha.split('-').map(Number);
+                            if (parts.length === 3) {
+                              const [year, month, day] = parts;
+                              date = new Date(year, month - 1, day);
+                            } else {
+                              date = new Date(garantia.fecha);
+                            }
+                          } else {
+                            date = new Date(garantia.fecha);
+                          }
+
+                          if (isNaN(date.getTime())) return String(garantia.fecha);
+                          
+                          return format(date, "dd 'de' MMMM, yyyy", { locale: es });
+                        } catch (e) {
+                          console.error('Error formatting date:', e, garantia.fecha);
+                          return String(garantia.fecha || '-');
+                        }
                       })()}
                     </td>
                     <td className="px-4 py-3">
@@ -116,14 +141,11 @@ export function Garantias({ garantias, onAdd, onUpdate, onDelete, settings }: Ga
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => {
-                            setEditingGarantia(garantia);
-                            setIsAddModalOpen(true);
-                          }}
-                          className="p-1.5 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          className="p-1.5 text-zinc-400 hover:bg-zinc-100 rounded-lg transition-colors"
+                          style={{ '--hover-color': 'var(--primary)' } as React.CSSProperties}
                           title="Editar registro"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-4 h-4 hover:text-[var(--primary)]" />
                         </button>
                         <button
                           onClick={() => {

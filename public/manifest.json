@@ -1,7 +1,7 @@
 {
-  "name": "Roma Center Spa",
-  "short_name": "Roma Center",
-  "description": "Sistema de gestión integral para Roma Center Spa",
+  "name": "Lubricentro Vespucio",
+  "short_name": "Vespucio",
+  "description": "Sistema de gestión integral para Lubricentro Vespucio",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

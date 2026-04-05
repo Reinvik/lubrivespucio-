@@ -240,7 +240,7 @@ export function Agenda({
 
     const sendPreventiveWhatsApp = (ticket: Ticket) => {
         try {
-            const message = `Hola ${ticket.owner_name}, te escribimos de ${settings?.workshop_name || 'Roma Center SPA'} para recordarte que ya han pasado 8 meses desde el último cambio de aceite/lubricante para tu vehículo ${ticket.model} (${ticket.patente || ticket.id}). ¿Te gustaría agendar una mantención preventiva para mantenerlo en óptimas condiciones?`;
+            const message = `Hola ${ticket.owner_name}, te escribimos de ${settings?.workshop_name || 'Lubricentro Vespucio'} para recordarte que ya han pasado 8 meses desde el último cambio de aceite/lubricante para tu vehículo ${ticket.model} (${ticket.patente || ticket.id}). ¿Te gustaría agendar una mantención preventiva para mantenerlo en óptimas condiciones?`;
             window.open(`https://wa.me/${ticket.owner_phone}?text=${encodeURIComponent(message)}`, '_blank');
         } catch (e) {
             console.error('Error opening WhatsApp:', e);

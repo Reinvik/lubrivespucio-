@@ -25,6 +25,8 @@ interface CartItem {
 }
 
 export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, salaVentas, settings }: SalaVentasProps) {
+  const primaryColor = settings?.theme_button_color || '#10b981';
+  
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState('');
   const [notes, setNotes] = useState('');
@@ -225,11 +227,19 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black tracking-tight text-zinc-900 flex items-center gap-3">
-            <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-lg ring-4 ring-emerald-600/20">
+            <div 
+              className="p-2 text-white rounded-xl shadow-lg ring-4"
+              style={{ backgroundColor: primaryColor, '--tw-ring-color': `${primaryColor}33` } as any}
+            >
               <ShoppingCart className="w-8 h-8" />
             </div>
             Sala Ventas
-            <span className="text-xs font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200">Mostrador</span>
+            <span 
+              className="text-xs font-bold px-2 py-0.5 rounded-lg border"
+              style={{ backgroundColor: `${primaryColor}1a`, color: primaryColor, borderColor: `${primaryColor}33` }}
+            >
+              Mostrador
+            </span>
           </h2>
           <p className="text-zinc-500 mt-1 font-medium">Venta directa de productos sin registro de cliente.</p>
         </div>
@@ -256,9 +266,10 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
         {successMsg && (
           <motion.div
             initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
-            className="bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-sm px-5 py-3 rounded-2xl flex items-center gap-3"
+            className="border font-bold text-sm px-5 py-3 rounded-2xl flex items-center gap-3"
+            style={{ backgroundColor: `${primaryColor}0d`, borderColor: `${primaryColor}33`, color: primaryColor }}
           >
-            <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: primaryColor }} />
             {successMsg}
           </motion.div>
         )}
@@ -267,12 +278,18 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
       {/* ─── KPIs ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {[
-          { label: `Ventas ${labelRange}`, value: `$${totalPeriod.toLocaleString()}`, icon: TrendingUp, color: 'emerald' },
+          { label: `Ventas ${labelRange}`, value: `$${totalPeriod.toLocaleString()}`, icon: TrendingUp, color: 'primary' },
           { label: `Transacciones ${labelRange}`, value: filteredHistory.length, icon: Receipt, color: 'blue' },
           { label: 'Ticket Promedio', value: filteredHistory.length > 0 ? `$${Math.round(totalPeriod / filteredHistory.length).toLocaleString()}` : '$0', icon: BarChart3, color: 'indigo' }
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className={`bg-white p-6 rounded-2xl border border-zinc-100 shadow-lg flex items-center gap-5`}>
-            <div className={`p-3 rounded-xl bg-${color}-50 text-${color}-600`}>
+            <div 
+              className={cn(
+                "p-3 rounded-xl",
+                color === 'primary' ? "" : `bg-${color}-50 text-${color}-600`
+              )}
+              style={color === 'primary' ? { backgroundColor: `${primaryColor}1a`, color: primaryColor } : {}}
+            >
               <Icon className="w-6 h-6" />
             </div>
             <div>
@@ -290,7 +307,7 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
         <div className="lg:col-span-3 bg-white rounded-3xl border border-zinc-200 shadow-xl overflow-hidden flex flex-col">
           <div className="p-6 border-b border-zinc-100">
             <h3 className="font-bold text-zinc-800 flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-emerald-600" />
+              <ShoppingBag className="w-5 h-5" style={{ color: primaryColor }} />
               Nueva Venta
             </h3>
           </div>
@@ -305,7 +322,8 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Nombre o código..."
-                className="w-full pl-10 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full pl-10 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ "--tw-focus-ring-color": `${primaryColor}4d` } as any}
               />
             </div>
             {/* Dropdown results */}
@@ -319,14 +337,15 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                     <button
                       key={p.id}
                       onClick={() => addToCart(p)}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-emerald-50 transition-colors text-left"
+                      className="w-full flex items-center justify-between px-4 py-3 transition-colors text-left group/result"
                     >
-                      <div>
+                      <div className="absolute inset-0 opacity-0 group-hover/result:opacity-100 transition-opacity" style={{ backgroundColor: `${primaryColor}0d` }}></div>
+                      <div className="relative z-10">
                         <div className="text-sm font-bold text-zinc-900">{p.name}</div>
                         <div className="text-xs text-zinc-400">{p.id} · Stock: {p.stock}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-black text-emerald-700">${p.price.toLocaleString()}</div>
+                      <div className="relative z-10 text-right">
+                        <div className="text-sm font-black" style={{ color: primaryColor }}>${p.price.toLocaleString()}</div>
                         <ChevronRight className="w-4 h-4 text-zinc-300 ml-auto" />
                       </div>
                     </button>
@@ -382,7 +401,8 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
               onChange={e => setNotes(e.target.value)}
               placeholder="Observaciones (opcional)..."
               rows={2}
-              className="w-full text-sm p-3 bg-white border border-zinc-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full text-sm p-3 bg-white border border-zinc-200 rounded-xl resize-none focus:outline-none focus:ring-2"
+              style={{ "--tw-focus-ring-color": `${primaryColor}33` } as any}
             />
             
             <div className="flex flex-col gap-2">
@@ -394,9 +414,10 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                     onClick={() => setPaymentMethod(m)}
                     className={`py-2 text-[10px] font-bold rounded-xl border transition-all ${
                       paymentMethod === m 
-                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' 
+                        ? 'text-white shadow-md' 
                         : 'bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300'
                     }`}
+                    style={paymentMethod === m ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                   >
                     {m}
                   </button>
@@ -412,7 +433,8 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                   value={transferData}
                   onChange={e => setTransferData(e.target.value)}
                   placeholder="Ej: Banco Estado, Op: 123456"
-                  className="w-full text-sm px-3 py-2 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  className="w-full text-sm px-3 py-2 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2"
+                  style={{ "--tw-focus-ring-color": `${primaryColor}33` } as any}
                 />
               </div>
             )}
@@ -447,7 +469,8 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                       value={rutEmpresa}
                       onChange={e => setRutEmpresa(e.target.value)}
                       placeholder="12.345.678-9"
-                      className="w-full text-sm px-3 py-2 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 uppercase"
+                      className="w-full text-sm px-3 py-2 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 uppercase"
+                      style={{ "--tw-focus-ring-color": `${primaryColor}33` } as any}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -457,7 +480,8 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                       value={razonSocial}
                       onChange={e => setRazonSocial(e.target.value)}
                       placeholder="Empresa S.A."
-                      className="w-full text-sm px-3 py-2 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 uppercase"
+                      className="w-full text-sm px-3 py-2 bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 uppercase"
+                      style={{ "--tw-focus-ring-color": `${primaryColor}33` } as any}
                     />
                   </div>
                 </div>
@@ -472,7 +496,8 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
               <button
                 onClick={handleConfirm}
                 disabled={cart.length === 0 || confirming}
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm px-6 py-3.5 rounded-2xl transition-all shadow-lg shadow-emerald-600/30 active:scale-95"
+                className="flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm px-6 py-3.5 rounded-2xl transition-all shadow-lg active:scale-95"
+                style={{ backgroundColor: primaryColor, '--tw-shadow-color': `${primaryColor}4d` } as any}
               >
                 <CheckCircle className="w-5 h-5" />
                 {confirming ? 'Registrando...' : 'Confirmar Venta'}
@@ -485,10 +510,10 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
         <div className="lg:col-span-2 bg-zinc-900 rounded-3xl border border-zinc-800 shadow-2xl overflow-hidden text-zinc-100">
           <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
             <h3 className="font-bold flex items-center gap-2">
-              <Clock className="w-5 h-5 text-emerald-400" />
+              <Clock className="w-5 h-5" style={{ color: primaryColor }} />
               Historial — {labelRange}
             </h3>
-            <span className="text-xs font-black text-emerald-400">{filteredHistory.length} ventas</span>
+            <span className="text-xs font-black uppercase tracking-widest" style={{ color: primaryColor }}>{filteredHistory.length} ventas</span>
           </div>
 
           <div className="overflow-y-auto dark-scrollbar" style={{ maxHeight: '520px' }}>
@@ -507,7 +532,12 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                           <Clock className="w-3 h-3" />
                           {format(parseISO(item.date), "d MMM · HH:mm", { locale: es })}
                           {item.type === 'venta' ? (
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase ml-2">Mesón</span>
+                            <span 
+                              className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ml-2 border"
+                              style={{ backgroundColor: `${primaryColor}1a`, color: primaryColor, borderColor: `${primaryColor}33` }}
+                            >
+                              Mesón
+                            </span>
                           ) : (
                             <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase ml-2">Taller</span>
                           )}
@@ -584,7 +614,7 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
           <div className="p-6 border-t border-zinc-800 bg-zinc-950/50 space-y-3">
             <div className="flex items-center justify-between border-b border-zinc-800/50 pb-3">
               <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Resumen {labelRange}</span>
-              <span className="text-xl font-black text-emerald-400">${totalPeriod.toLocaleString()}</span>
+              <span className="text-xl font-black" style={{ color: primaryColor }}>${totalPeriod.toLocaleString()}</span>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">

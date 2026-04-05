@@ -1,19 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, CreditCard, Banknote, FileText, Check, Send } from 'lucide-react';
-import { PaymentMethod, DocumentType } from '../types';
+import { Ticket, PaymentMethod, DocumentType } from '../types';
 
 interface FinishTicketModalProps {
   isOpen: boolean;
+  ticket: Ticket | null;
+  tickets: Ticket[]; // Added to allow searching for history
   onConfirm: (paymentMethod: PaymentMethod, documentType: DocumentType, rutEmpresa?: string, razonSocial?: string, transferData?: string) => void;
   onCancel: () => void;
 }
 
-export function FinishTicketModal({ isOpen, onConfirm, onCancel }: FinishTicketModalProps) {
+export function FinishTicketModal({ isOpen, ticket, tickets, onConfirm, onCancel }: FinishTicketModalProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Tarjeta');
   const [documentType, setDocumentType] = useState<DocumentType>('Boleta');
   const [rutEmpresa, setRutEmpresa] = useState('');
   const [razonSocial, setRazonSocial] = useState('');
   const [transferData, setTransferData] = useState('');
+
+  useEffect(() => {
+    if (isOpen && ticket && tickets) {
+      // Normalize current patente
+      const normPatente = (ticket.patente || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+      // 1. First set from the current ticket (if edited previously in EditTicketModal)
+      const currentRut = ticket.rut_empresa || '';
+      const currentRazon = ticket.razon_social || '';
+      
+      setRutEmpresa(currentRut);
+      setRazonSocial(currentRazon);
+      setPaymentMethod(ticket.payment_method || 'Tarjeta');
+      setTransferData(ticket.transfer_data || '');
+
+      // 2. Determine document type
+      // If it already has billing info OR was set to Factura, select Factura
+      if (currentRut || ticket.document_type === 'Factura') {
+        setDocumentType('Factura');
+      } else {
+        setDocumentType(ticket.document_type || 'Boleta');
+      }
+
+      // 3. Fallback: Lookup history if current is missing info
+      if (!currentRut && normPatente) {
+        const historyMatch = tickets
+          .filter(t => {
+            const tNorm = (t.patente || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            return tNorm === normPatente && (t.rut_empresa?.length || 0) > 5;
+          })
+          .sort((a, b) => new Date(b.created_at || b.entry_date).getTime() - new Date(a.created_at || a.entry_date).getTime())[0];
+        
+        if (historyMatch) {
+          setRutEmpresa(historyMatch.rut_empresa || '');
+          setRazonSocial(historyMatch.razon_social || '');
+          setDocumentType('Factura'); 
+        }
+      }
+    }
+  }, [isOpen, ticket, tickets]);
+
+  // Lookup when user MANUALLY switches to Factura
+  useEffect(() => {
+    if (documentType === 'Factura' && !rutEmpresa && ticket && tickets) {
+      const normPatente = (ticket.patente || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (normPatente) {
+        const lastTicketWithBilling = tickets
+          .filter(t => {
+            const tNorm = (t.patente || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            return t.id !== ticket.id && tNorm === normPatente && t.rut_empresa;
+          })
+          .sort((a, b) => new Date(b.created_at || b.entry_date).getTime() - new Date(a.created_at || a.entry_date).getTime())[0];
+        
+        if (lastTicketWithBilling) {
+          setRutEmpresa(lastTicketWithBilling.rut_empresa || '');
+          setRazonSocial(lastTicketWithBilling.razon_social || '');
+        }
+      }
+    }
+  }, [documentType, ticket, tickets, rutEmpresa]);
+
+  // Búsqueda automática de Razón Social al escribir RUT
+  useEffect(() => {
+    if (rutEmpresa && rutEmpresa.length > 5 && !razonSocial) {
+      const match = tickets.find(t => t.rut_empresa === rutEmpresa && t.razon_social);
+      if (match) {
+        setRazonSocial(match.razon_social || '');
+      }
+    }
+  }, [rutEmpresa, tickets, razonSocial]);
 
   if (!isOpen) return null;
 

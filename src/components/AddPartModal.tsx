@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, PackagePlus, Loader2, Plus, Minus } from 'lucide-react';
+import { X, PackagePlus, Loader2, Plus, Minus, Wrench } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 interface AddPartModalProps {
     isOpen: boolean;
@@ -14,7 +15,8 @@ export function AddPartModal({ isOpen, onClose, onAdd }: AddPartModalProps) {
         stock: 0,
         min_stock: 0,
         price: 0,
-        location: ''
+        location: '',
+        is_service: false
     });
     const [loading, setLoading] = useState(false);
 
@@ -24,9 +26,22 @@ export function AddPartModal({ isOpen, onClose, onAdd }: AddPartModalProps) {
         e.preventDefault();
         setLoading(true);
         try {
-            await onAdd(formData);
+            // If it's a service, ensure name has "Servicio" to match existing filters
+            // and clean up ID if it's empty to let Supabase generate it
+            const finalData = {
+                ...formData,
+                name: formData.is_service && !formData.name.toLowerCase().includes('servicio') 
+                    ? `Servicio ${formData.name}` 
+                    : formData.name,
+                id: formData.id.trim() === '' ? undefined : formData.id.trim()
+            };
+            
+            // Avoid sending is_service if it's not a DB column (using it for UI logic only)
+            const { is_service, ...dbData } = finalData;
+
+            await onAdd(dbData);
             onClose();
-            setFormData({ id: '', name: '', stock: 0, min_stock: 0, price: 0, location: '' });
+            setFormData({ id: '', name: '', stock: 0, min_stock: 0, price: 0, location: '', is_service: false });
         } catch (error) {
             console.error('Error adding part:', error);
         } finally {
@@ -47,13 +62,35 @@ export function AddPartModal({ isOpen, onClose, onAdd }: AddPartModalProps) {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+                    <div className="flex bg-zinc-100 p-1 rounded-xl gap-1">
+                        <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, is_service: false })}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
+                                !formData.is_service ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"
+                            )}
+                        >
+                            <PackagePlus className="w-4 h-4" /> Producto / Insumo
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, is_service: true })}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all",
+                                formData.is_service ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "text-zinc-500 hover:text-zinc-700"
+                            )}
+                        >
+                            <Wrench className="w-4 h-4" /> Mano de Obra / Servicio
+                        </button>
+                    </div>
+
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-zinc-700">ID / Código</label>
+                        <label className="text-sm font-semibold text-zinc-700">ID / Código (Opcional)</label>
                         <input
-                            required
                             type="text"
-                            placeholder="Ej: ACE-001 o Servicio CAMBIO ACEITE"
+                            placeholder={formData.is_service ? "Ej: MO-001" : "Ej: ACE-001"}
                             className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all font-mono"
                             value={formData.id}
                             onChange={e => setFormData({ ...formData, id: e.target.value.toUpperCase() })}
@@ -61,74 +98,75 @@ export function AddPartModal({ isOpen, onClose, onAdd }: AddPartModalProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-zinc-700">Nombre del Item</label>
+                        <label className="text-sm font-semibold text-zinc-700">Nombre del {formData.is_service ? 'Servicio' : 'Item'}</label>
                         <input
                             required
                             type="text"
-                            placeholder="Ej: Filtro de Aire o Servicio Diagnóstico"
+                            placeholder={formData.is_service ? "Ej: Cambio de Aceite" : "Ej: Filtro de Aire"}
                             className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                         />
-                        <p className="text-[10px] text-zinc-400 mt-1">Tip: Use "Servicio" en el nombre para categorizar como tal.</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-zinc-700">Stock Inicial</label>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, stock: Math.max(0, prev.stock - 1) }))}
-                                    className="p-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl transition-colors border border-zinc-200"
-                                >
-                                    <Minus className="w-4 h-4" />
-                                </button>
-                                <input
-                                    required
-                                    type="number"
-                                    min="0"
-                                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all text-center"
-                                    value={formData.stock}
-                                    onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, stock: prev.stock + 1 }))}
-                                    className="p-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl transition-colors border border-zinc-200"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                </button>
+                    {!formData.is_service && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-700">Stock Inicial</label>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, stock: Math.max(0, prev.stock - 1) }))}
+                                        className="p-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl transition-colors border border-zinc-200"
+                                    >
+                                        <Minus className="w-4 h-4" />
+                                    </button>
+                                    <input
+                                        required
+                                        type="number"
+                                        min="0"
+                                        className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all text-center"
+                                        value={formData.stock}
+                                        onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, stock: prev.stock + 1 }))}
+                                        className="p-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl transition-colors border border-zinc-200"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-700">Stock Mínimo</label>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, min_stock: Math.max(0, prev.min_stock - 1) }))}
+                                        className="p-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl transition-colors border border-zinc-200"
+                                    >
+                                        <Minus className="w-4 h-4" />
+                                    </button>
+                                    <input
+                                        required
+                                        type="number"
+                                        min="0"
+                                        className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all text-center"
+                                        value={formData.min_stock}
+                                        onChange={e => setFormData({ ...formData, min_stock: parseInt(e.target.value) || 0 })}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, min_stock: prev.min_stock + 1 }))}
+                                        className="p-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl transition-colors border border-zinc-200"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-zinc-700">Stock Mínimo</label>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, min_stock: Math.max(0, prev.min_stock - 1) }))}
-                                    className="p-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl transition-colors border border-zinc-200"
-                                >
-                                    <Minus className="w-4 h-4" />
-                                </button>
-                                <input
-                                    required
-                                    type="number"
-                                    min="0"
-                                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all text-center"
-                                    value={formData.min_stock}
-                                    onChange={e => setFormData({ ...formData, min_stock: parseInt(e.target.value) || 0 })}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, min_stock: prev.min_stock + 1 }))}
-                                    className="p-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl transition-colors border border-zinc-200"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    )}
 
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-zinc-700">Precio (CLP)</label>
@@ -158,16 +196,18 @@ export function AddPartModal({ isOpen, onClose, onAdd }: AddPartModalProps) {
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-zinc-700">Ubicación (Pasillo/Posición/Nivel)</label>
-                        <input
-                            type="text"
-                            placeholder="Ej: 010203 (P1, Loc 2, Nivel 3)"
-                            className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
-                            value={formData.location}
-                            onChange={e => setFormData({ ...formData, location: e.target.value.toUpperCase() })}
-                        />
-                    </div>
+                    {!formData.is_service && (
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-zinc-700">Ubicación (Pasillo/Posición/Nivel)</label>
+                            <input
+                                type="text"
+                                placeholder="Ej: 010203 (P1, Loc 2, Nivel 3)"
+                                className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                                value={formData.location}
+                                onChange={e => setFormData({ ...formData, location: e.target.value.toUpperCase() })}
+                            />
+                        </div>
+                    )}
 
                     <div className="pt-4 flex justify-end gap-3 border-t border-zinc-100">
                         <button

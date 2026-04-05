@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Users, Search, Phone, Car, Calendar, Edit2, MessageCircle, Info, History, Trash2, ArrowDown } from 'lucide-react';
+import { Users, Search, Phone, Car, Calendar, Edit2, MessageCircle, Info, History, Trash2, ArrowDown, ShieldCheck } from 'lucide-react';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AddCustomerModal } from './AddCustomerModal';
@@ -21,13 +21,10 @@ interface CustomersProps {
 }
 
 const statusMap: Record<TicketStatus, string> = {
-  'Ingresado': 'ingresado',
-  'En Espera': 'en espera',
+  'Ingreso': 'ingreso',
+  'En espera': 'en espera',
   'En Mantención': 'en proceso',
-  'En Reparación': 'en proceso',
-  'Elevador 1': 'en proceso',
-  'Elevador 2': 'en proceso',
-  'Listo para Entrega': 'listo para entrega',
+  'Listo para entrega': 'listo para entrega',
   'Finalizado': 'entregado',
   'Entregado': 'entregado'
 };
@@ -61,7 +58,7 @@ export function Customers({ customers, tickets, settings, onAddCustomer, onUpdat
       const to = from + LIMIT - 1;
 
       let query = supabaseGarage
-        .from('romaspa_tickets')
+        .from('garage_tickets')
         .select('*')
         .eq('company_id', settings.company_id);
 
@@ -167,22 +164,25 @@ export function Customers({ customers, tickets, settings, onAddCustomer, onUpdat
       lastMileage: number | null;
       fullHistory: Ticket[];
       customerData?: Customer;
+      razonSocial: string;
+      rutEmpresa: string;
     }>();
 
     crmTickets.forEach(ticket => {
-      // Usar la columna patente para agrupar, si no existe (fallback) usar ID
       const patente = ticket.patente || ticket.id;
       const existing = vehicleMap.get(patente);
       
       if (!existing || new Date(ticket.close_date || ticket.entry_date) > new Date(existing.lastVisit)) {
         vehicleMap.set(patente, {
-          id: patente, // Usamos la patente como ID para las operaciones de edición/vincular
+          id: patente,
           ownerName: ticket.owner_name,
           ownerPhone: ticket.owner_phone,
           model: ticket.model,
           lastVisit: ticket.close_date || ticket.entry_date,
           lastMileage: ticket.mileage,
-          fullHistory: existing ? [...existing.fullHistory, ticket] : [ticket]
+          fullHistory: existing ? [...existing.fullHistory, ticket] : [ticket],
+          razonSocial: ticket.razon_social || '',
+          rutEmpresa: ticket.rut_empresa || ''
         });
       } else {
         existing.fullHistory.push(ticket);
@@ -198,9 +198,17 @@ export function Customers({ customers, tickets, settings, onAddCustomer, onUpdat
       if (customer) v.customerData = customer;
     });
 
-    return Array.from(vehicleMap.values())
-      .sort((a, b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime());
-  }, [crmTickets, customers]);
+    const filtered = Array.from(vehicleMap.values()).filter(v => 
+      v.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.ownerPhone.includes(searchTerm) ||
+      v.razonSocial.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.rutEmpresa.includes(searchTerm) ||
+      v.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return filtered.sort((a, b) => new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime());
+  }, [crmTickets, customers, searchTerm]);
 
   // Skeleton Loaders components
   const TableSkeleton = () => (
@@ -342,9 +350,16 @@ export function Customers({ customers, tickets, settings, onAddCustomer, onUpdat
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-bold text-zinc-900">
-                        <Users className="w-4 h-4 text-zinc-400" />
-                        {vehicle.ownerName}
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2 text-sm font-bold text-zinc-900">
+                          <Users className="w-4 h-4 text-zinc-400" />
+                          {vehicle.ownerName}
+                        </div>
+                        {vehicle.razonSocial && (
+                          <div className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest mt-1 border border-purple-100 flex items-center gap-1 w-fit ml-6">
+                            <ShieldCheck className="w-2.5 h-2.5" /> {vehicle.razonSocial}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-zinc-600">
                         <Phone className="w-4 h-4 text-zinc-400" />
@@ -410,6 +425,11 @@ export function Customers({ customers, tickets, settings, onAddCustomer, onUpdat
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1">
                             <span className="font-semibold text-zinc-900">{vehicle.ownerName}</span>
+                            {vehicle.razonSocial && (
+                              <div className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest mt-1 border border-purple-100 flex items-center gap-1 w-fit">
+                                <ShieldCheck className="w-2.5 h-2.5" /> {vehicle.razonSocial}
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 text-xs text-zinc-500">
                               <Phone className="w-3.5 h-3.5 text-zinc-400" />
                               {vehicle.ownerPhone}
@@ -529,6 +549,7 @@ export function Customers({ customers, tickets, settings, onAddCustomer, onUpdat
         isOpen={crmTicket !== null}
         onClose={() => setCrmTicket(null)}
         ticket={crmTicket}
+        allTickets={crmTickets}
         onUpdateNotes={onUpdateNotes}
         settings={settings}
       />

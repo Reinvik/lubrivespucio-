@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Ticket, Mechanic, Part, ServiceItem } from '../types';
-import { X, Save, User, FileText, Loader2, Trash2, PlusCircle, Camera, ImagePlus, History, Search, Package, Send } from 'lucide-react';
+import { Ticket, Mechanic, Part, ServiceItem, InspeccionDetalle, InspectionStatus, INICIAL_CHECKLIST_ITEMS, ChecklistIngreso, INICIAL_INGRESO_CHECKLIST } from '../types';
+import { X, Save, User, FileText, Loader2, Trash2, PlusCircle, Camera, ImagePlus, History, Search, Package, Send, ShieldCheck, AlertCircle, ChevronDown, ClipboardList, PenTool, ChevronRight } from 'lucide-react';
 import { VehicleHistoryView } from './VehicleHistoryView';
+import { InspeccionModal } from './InspeccionModal';
 import { cn } from '../lib/utils';
 
 interface EditTicketModalProps {
     isOpen: boolean;
     onClose: () => void;
     ticket: Ticket | null;
+    tickets: Ticket[]; // Added for history view
     mechanics: Mechanic[];
     parts: Part[];
     onUpdate: (id: string, updates: Partial<Ticket>) => Promise<void>;
@@ -16,7 +18,7 @@ interface EditTicketModalProps {
     settings?: any;
 }
 
-export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onUpdate, onUploadPhoto, onUpdatePart, settings }: EditTicketModalProps) {
+export function EditTicketModal({ isOpen, onClose, ticket, tickets, mechanics, parts, onUpdate, onUploadPhoto, onUpdatePart, settings }: EditTicketModalProps) {
     const [notes, setNotes] = useState('');
     const [mechanicId, setMechanicId] = useState('Sin asignar');
     const [quotationTotal, setQuotationTotal] = useState<number>(0);
@@ -30,7 +32,12 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
     const [rutEmpresa, setRutEmpresa] = useState('');
     const [razonSocial, setRazonSocial] = useState('');
     const [transferData, setTransferData] = useState('');
-
+    const [inspeccion, setInspeccion] = useState<InspeccionDetalle | null>(null);
+    const [checklistIngreso, setChecklistIngreso] = useState<ChecklistIngreso | null>(null);
+    const [showInspectionModal, setShowInspectionModal] = useState(false);
+    const [ownerName, setOwnerName] = useState('');
+    const [ownerPhone, setOwnerPhone] = useState('');
+    const [vehicleNotes, setVehicleNotes] = useState('');
     // Search state for spare parts
     const [partSearch, setPartSearch] = useState('');
     const [showPartDropdown, setShowPartDropdown] = useState(false);
@@ -62,8 +69,50 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
             setRutEmpresa(ticket.rut_empresa || '');
             setRazonSocial(ticket.razon_social || '');
             setTransferData(ticket.transfer_data || '');
+            
+            if (ticket.inspeccion) {
+                setInspeccion(ticket.inspeccion);
+            } else {
+                setInspeccion({
+                    status_general: 'gray',
+                    checklist: INICIAL_CHECKLIST_ITEMS.map(item => ({
+                        ...item,
+                        status: 'gray' as InspectionStatus,
+                        value: ''
+                    })),
+                    exterior: { estado: '', fotos: [] },
+                    objetosValor: { detalle: '', fotos: [] },
+                    observaciones: '',
+                    comentarios: ''
+                });
+            }
+
+            if (ticket.ingreso_checklist) {
+                setChecklistIngreso(ticket.ingreso_checklist);
+            } else {
+                setChecklistIngreso(INICIAL_INGRESO_CHECKLIST);
+            }
+
+            setOwnerName(ticket.owner_name || '');
+            setOwnerPhone(ticket.owner_phone || '');
+            setVehicleNotes(ticket.vehicle_notes || '');
         }
     }, [ticket]);
+
+    // Auto-calculate status_general based on severity
+    useEffect(() => {
+        if (!inspeccion) return;
+        const statuses = inspeccion.checklist.map(i => i.status);
+        let newStatus: InspectionStatus = 'gray';
+        if (statuses.includes('red')) newStatus = 'red';
+        else if (statuses.includes('yellow')) newStatus = 'yellow';
+        else if (statuses.includes('green')) newStatus = 'green';
+        else newStatus = 'gray';
+        
+        if (newStatus !== inspeccion.status_general) {
+            setInspeccion(prev => prev ? { ...prev, status_general: newStatus } : null);
+        }
+    }, [inspeccion?.checklist]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -144,6 +193,80 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
         }
     };
 
+    const toggleInspectionStatus = (id: string) => {
+        if (!inspeccion) return;
+        const item = inspeccion.checklist.find(i => i.id === id);
+        if (!item) return;
+
+        const cycle: InspectionStatus[] = ['gray', 'green', 'yellow', 'red'];
+        const currentIndex = cycle.indexOf(item.status as InspectionStatus);
+        const nextStatus = cycle[(currentIndex + 1) % cycle.length];
+
+        const newChecklist = inspeccion.checklist.map(i => 
+            i.id === id ? { ...i, status: nextStatus } : i
+        );
+
+        // Auto-calculate general status
+        const statuses = newChecklist.map(i => i.status);
+        let newGeneralStatus: InspectionStatus = 'gray';
+        if (statuses.includes('red')) newGeneralStatus = 'red';
+        else if (statuses.includes('yellow')) newGeneralStatus = 'yellow';
+        else if (statuses.includes('green')) newGeneralStatus = 'green';
+        else newGeneralStatus = 'gray';
+
+        setInspeccion({
+            ...inspeccion,
+            checklist: newChecklist,
+            status_general: newGeneralStatus
+        });
+    };
+
+    const updateInspectionValue = (id: string, value: string) => {
+        if (!inspeccion) return;
+        setInspeccion({
+            ...inspeccion,
+            checklist: inspeccion.checklist.map(i => i.id === id ? { ...i, value } : i)
+        });
+    };
+
+    const primaryColor = settings?.theme_button_color || '#10b981';
+
+    const KEY_LABELS: Record<string, string> = {
+        padron: 'Padrón',
+        revisionTecnica: 'Rev. Técnica',
+        seguroObligatorio: 'Seguro Oblig.',
+        permisoCirculacion: 'Permiso Circ.',
+        altas: 'Altas',
+        bajas: 'Bajas',
+        freno: 'Freno',
+        retroceso: 'Retroceso',
+        intermitentes: 'Interm.',
+        patente: 'Luz Patente',
+        tablero: 'Tablero',
+        aceiteMotor: 'Aceite Motor',
+        liquidoFrenos: 'Liq. Frenos',
+        refrigerante: 'Refrigerante',
+        liquidoDireccion: 'Liq. Direcc.',
+        aguaLimpiaParabrisas: 'Limpia Parab.',
+        radio: 'Radio',
+        encendedor: 'Encendedor',
+        espejos: 'Espejos',
+        plumillas: 'Plumillas',
+        tapaBencina: 'Tapa Comb.',
+        tapaRueda: 'Tapa Rueda',
+        gata: 'Gata',
+        llaveRueda: 'Llave Rueda',
+        triangulos: 'Triángulos',
+        extintor: 'Extintor',
+        botiquin: 'Botiquín',
+        chaleco: 'Chaleco Ref.',
+        delanteroDerecho: 'Del. Der.',
+        delanteroIzquierdo: 'Del. Izq.',
+        traseroDerecho: 'Tras. Der.',
+        traseroIzquierdo: 'Tras. Izq.',
+        repuesto: 'Repuesto'
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isFinalized) return;
@@ -151,6 +274,8 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
         try {
             await onUpdate(ticket!.id, {
                 notes,
+                owner_name: ownerName,
+                owner_phone: ownerPhone,
                 mechanic_id: mechanicId === 'Sin asignar' ? null : mechanicId,
                 quotation_total: totalInvestment,
                 cost: totalInvestment,
@@ -162,6 +287,13 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
                 rut_empresa: rutEmpresa,
                 razon_social: razonSocial,
                 transfer_data: transferData,
+                inspeccion: inspeccion ? {
+                    ...inspeccion,
+                    updated_at: new Date().toISOString()
+                } : undefined,
+                ingreso_checklist: checklistIngreso || undefined,
+                status_general: inspeccion?.status_general || 'gray',
+                vehicle_notes: vehicleNotes
             });
 
             // Deduct stock for newly-added inventory parts (both in parts and services)
@@ -195,7 +327,7 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
         <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-0 md:p-4 font-sans overflow-hidden">
             <div className={cn(
                 "bg-white rounded-none md:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row transition-all duration-500 ease-out h-full md:max-h-[96vh] w-full",
-                showHistory ? "max-w-6xl" : "max-w-2xl"
+                showHistory ? "max-w-6xl" : "max-w-3xl"
             )}>
 
                 {/* Panel Principal de Edición */}
@@ -226,247 +358,305 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
                     </div>
 
                     {/* Formulario */}
-                    <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-6 md:space-y-8 overflow-y-auto flex-1 scrollbar-thin">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                            {/* Ficha Técnica */}
-                            <div className="space-y-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-1.5 h-6 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></div>
-                                    <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Estado Técnico</p>
-                                </div>
-                                <div className="grid grid-cols-1 gap-5">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">Kilometraje Actual</label>
-                                        <div className="relative group">
-                                            <input
-                                                type="number"
-                                                className="w-full px-4 py-3.5 rounded-2xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all font-black text-lg pr-12 bg-white disabled:opacity-50 group-hover:border-blue-100"
-                                                value={mileage || ''}
-                                                onChange={e => setMileage(Number(e.target.value))}
-                                                disabled={isFinalized}
-                                            />
-                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-300 group-focus-within:text-blue-500 transition-colors">KM</span>
-                                        </div>
+                    <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-zinc-200">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-5 items-start">
+                            {/* Columna 1: Ficha Técnica e Inspección */}
+                            <div className="space-y-6">
+                                {/* Ficha Técnica */}
+                                <div className="space-y-4 bg-zinc-50/30 p-5 rounded-3xl border border-zinc-100">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-1.5 h-6 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></div>
+                                        <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Información del Servicio</p>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">Próximo Cambio</label>
-                                        <div className="w-full px-5 py-3.5 rounded-2xl border-2 border-dashed border-emerald-100 bg-emerald-50/20 flex items-center justify-between">
-                                            <span className="text-lg font-black text-emerald-600">
-                                                {mileage > 0 ? (mileage + 10000).toLocaleString('es-CL') : '---'}
-                                            </span>
-                                            <div className="flex flex-col items-end leading-none">
-                                                <span className="text-[9px] font-black text-emerald-500 uppercase">+10.000 KM</span>
-                                                <span className="text-[7px] font-bold text-emerald-400 uppercase tracking-tighter">SUGERIDO</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Diagnóstico */}
-                            <div className="space-y-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-1.5 h-6 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></div>
-                                    <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Diagnóstico y Notas</p>
-                                </div>
-                                <div className="relative">
-                                    <textarea
-                                        rows={12}
-                                        className="w-full px-5 py-4 rounded-2xl border-2 border-zinc-100 focus:border-amber-500 outline-none transition-all resize-none text-zinc-800 text-sm disabled:bg-zinc-50 disabled:text-zinc-500 font-medium leading-relaxed bg-white"
-                                        placeholder="Ingrese el diagnóstico o notas adicionales del servicio..."
-                                        value={notes}
-                                        onChange={e => setNotes(e.target.value)}
-                                        disabled={isFinalized}
-                                    />
-                                    <FileText className="absolute right-4 bottom-4 w-4 h-4 text-zinc-200 pointer-events-none" />
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div className="space-y-5 pt-2">
-                            <div className="flex items-center justify-between border-b border-zinc-50 pb-2">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-1.5 h-4 rounded-full bg-blue-500"></div>
-                                    <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Desglose de Servicios</p>
-                                </div>
-                                <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-widest">Valores en CLP</span>
-                            </div>
-
-                            {/* Buscador de inventario */}
-                            {!isFinalized && (
-                                <div className="relative" ref={searchRef}>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar en inventario..."
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 hover:border-blue-300 focus:border-blue-500 outline-none transition-all text-sm bg-white"
-                                            value={partSearch}
-                                            onChange={e => { setPartSearch(e.target.value); setShowPartDropdown(true); }}
-                                            onFocus={() => setShowPartDropdown(true)}
-                                        />
-                                    </div>
-
-                                    {showPartDropdown && partSearch.length > 0 && (
-                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto">
-                                            {filteredInventory.length === 0 ? (
-                                                <div className="p-3 text-xs text-zinc-400 text-center italic">Sin resultados en inventario</div>
-                                            ) : (
-                                                filteredInventory.map(part => {
-                                                    const isLabor = part.name.toUpperCase().includes('SERVICIO') || 
-                                                                    part.name.toUpperCase().includes('M.O.') || 
-                                                                    part.name.toLowerCase().includes('mano de obra');
-                                                    const isOutOfStock = part.stock === 0 && !isLabor;
-                                                    return (
-                                                        <button
-                                                            key={part.id}
-                                                            type="button"
-                                                            disabled={isOutOfStock}
-                                                            onClick={() => handleSelectInventoryPart(part)}
-                                                            className={cn(
-                                                                "w-full flex items-center justify-between px-4 py-2.5 hover:bg-blue-50 transition-colors text-left border-b border-zinc-50 last:border-0",
-                                                                isOutOfStock && "opacity-40 cursor-not-allowed"
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <Package className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                                                <div>
-                                                                    <span className="text-sm font-medium text-zinc-800">{part.name}</span>
-                                                                    <div className="text-[9px] text-zinc-400 font-bold uppercase tracking-tighter">ID: {part.id}</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-3 shrink-0 ml-2">
-                                                                <span className={cn(
-                                                                    "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
-                                                                    part.stock === 0 ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-700"
-                                                                )}>
-                                                                    {part.stock === 0 ? 'Sin stock' : `${part.stock} u.`}
-                                                                </span>
-                                                                <span className="text-xs font-black text-zinc-600">${part.price.toLocaleString('es-CL')}</span>
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            <div className="space-y-2">
-                                {spareParts.length === 0 && !isFinalized && (
-                                    <p className="text-[10px] text-zinc-400 italic text-center py-4 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-100">
-                                        Busca en el inventario o añade un servicio extra.
-                                    </p>
-                                )}
-                                {spareParts.map((part, index) => (
-                                    <div key={index} className="flex gap-3 items-center animate-in slide-in-from-left-2 duration-200" style={{ animationDelay: `${index * 50}ms` }}>
-                                        <div className="flex-1 relative">
-                                            {part.part_id && (
-                                                <Package className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-400 pointer-events-none" />
-                                            )}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="col-span-2 space-y-1">
+                                            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest pl-1">Nombre del Cliente</label>
                                             <input
                                                 type="text"
-                                                placeholder="Descripción"
-                                                className={cn(
-                                                    "w-full px-4 py-3 rounded-xl border border-zinc-100 hover:border-zinc-200 focus:border-blue-500 outline-none transition-all text-sm bg-zinc-50/50 font-medium",
-                                                    part.part_id && "pl-9 text-blue-700 bg-blue-50/50 border-blue-100"
-                                                )}
-                                                value={part.descripcion}
-                                                onChange={(e) => handleSparePartChange(index, 'descripcion', e.target.value)}
-                                                disabled={isFinalized || !!part.part_id}
+                                                className="w-full px-3 py-2.5 rounded-xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all font-bold text-xs bg-white"
+                                                value={ownerName}
+                                                onChange={e => setOwnerName(e.target.value)}
+                                                disabled={isFinalized}
                                             />
-                                            {part.part_id && (
-                                                <div className="absolute -top-1.5 -left-1 px-1.5 py-0.5 bg-blue-500 text-[8px] font-black text-white rounded-md uppercase tracking-widest shadow-sm">
-                                                    Link Inventario
+                                        </div>
+                                        <div className="col-span-2 space-y-1">
+                                            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest pl-1">Teléfono (WhatsApp)</label>
+                                            <input
+                                                type="tel"
+                                                className="w-full px-3 py-2.5 rounded-xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all font-bold text-xs bg-white font-mono"
+                                                value={ownerPhone}
+                                                onChange={e => setOwnerPhone(e.target.value)}
+                                                disabled={isFinalized}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest pl-1">Kilometraje</label>
+                                            <div className="relative group">
+                                                <input
+                                                    type="number"
+                                                    className="w-full px-3 py-2.5 rounded-xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all font-black text-sm pr-10 bg-white"
+                                                    value={mileage || ''}
+                                                    onChange={e => setMileage(Number(e.target.value))}
+                                                    disabled={isFinalized}
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black text-zinc-300">KM</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest pl-1">Próximo Cambio</label>
+                                            <div className="w-full px-3 py-2.5 rounded-xl border-2 border-dashed border-emerald-100 bg-emerald-50/30 flex items-center justify-between h-[42px]">
+                                                <span className="text-sm font-black text-emerald-600">
+                                                    {mileage > 0 ? (mileage + 10000).toLocaleString('es-CL') : '---'}
+                                                </span>
+                                                <span className="text-[7px] font-bold text-emerald-400 uppercase leading-none text-right">Sugerido<br/>+10K</span>
+                                            </div>
+                                        </div>
+                                        <div className="col-span-2 space-y-1">
+                                            <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest pl-1">Mecánico Encargado</label>
+                                            <select
+                                                className="w-full px-3 py-2.5 rounded-xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all bg-white text-zinc-900 font-bold text-xs uppercase tracking-wider"
+                                                value={mechanicId}
+                                                onChange={e => setMechanicId(e.target.value)}
+                                                disabled={isFinalized}
+                                            >
+                                                <option value="Sin asignar">SIN ASIGNAR</option>
+                                                {mechanics.map(m => (
+                                                    <option key={m.id} value={m.id}>{m.name.toUpperCase()}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            
+                                 {/* Diagnóstico y Notas Permanentes */}
+                                <div className="space-y-4">
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-1 h-5 rounded-full bg-amber-500"></div>
+                                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Notas Permanentes del Vehículo</p>
+                                        </div>
+                                        <div className="relative">
+                                            <textarea
+                                                rows={2}
+                                                className="w-full px-4 py-3 rounded-xl border-2 border-amber-100 focus:border-amber-500 outline-none transition-all resize-none text-zinc-800 text-xs disabled:bg-zinc-50 disabled:text-zinc-500 font-bold leading-relaxed bg-amber-50/10 shadow-sm"
+                                                placeholder="Ej: El cliente es muy cuidadoso con la pintura, revisar frenos próxima visita..."
+                                                value={vehicleNotes}
+                                                onChange={e => setVehicleNotes(e.target.value)}
+                                                disabled={isFinalized}
+                                            />
+                                            <PenTool className="absolute right-3 bottom-3 w-3.5 h-3.5 text-amber-200 pointer-events-none" />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-1 h-5 rounded-full bg-blue-600"></div>
+                                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Diagnóstico y Notas del Trabajo Actual</p>
+                                        </div>
+                                        <div className="relative">
+                                            <textarea
+                                                rows={4}
+                                                className="w-full px-4 py-3 rounded-xl border-2 border-zinc-100 focus:border-blue-600 outline-none transition-all resize-none text-zinc-800 text-xs disabled:bg-zinc-50 disabled:text-zinc-500 font-medium leading-relaxed bg-white shadow-sm"
+                                                placeholder="Ingrese el diagnóstico o notas adicionales del servicio..."
+                                                value={notes}
+                                                onChange={e => setNotes(e.target.value)}
+                                                disabled={isFinalized}
+                                            />
+                                            <FileText className="absolute right-3 bottom-3 w-3.5 h-3.5 text-zinc-200 pointer-events-none" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-3xl border border-zinc-100 p-1 shadow-sm">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowInspectionModal(true)}
+                                        className="w-full group flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 transition-all duration-300"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm",
+                                                inspeccion?.status_general ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-zinc-50 text-zinc-400 border border-zinc-100"
+                                            )}>
+                                                <ClipboardList className="w-5 h-5" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-xs font-black text-zinc-900 uppercase tracking-widest">Inspección de Vehículo</p>
+                                                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter mt-0.5">Reporte de Recepción y Estado</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            {inspeccion?.status_general && (
+                                                <div className={cn(
+                                                    "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
+                                                    inspeccion.status_general === 'green' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+                                                    inspeccion.status_general === 'yellow' ? "bg-amber-50 border-amber-100 text-amber-600" :
+                                                    "bg-red-50 border-red-100 text-red-600"
+                                                )}>
+                                                    {inspeccion.status_general === 'green' ? 'SANO' : inspeccion.status_general === 'yellow' ? 'AVISO' : 'CRÍTICO'}
+                                                </div>
+                                            )}
+                                            <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:translate-x-1 transition-transform" />
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Columna 2: Servicios, Mecánico y Facturación */}
+                            <div className="space-y-6">
+                                <div className="space-y-5">
+                                    <div className="flex items-center justify-between border-b border-zinc-50 pb-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-1.5 h-4 rounded-full bg-blue-500"></div>
+                                            <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Desglose de Servicios</p>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-widest">Precios con IVA</span>
+                                    </div>
+
+                                    {/* Buscador de inventario */}
+                                    {!isFinalized && (
+                                        <div className="relative" ref={searchRef}>
+                                            <div className="relative">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Buscar repuestos o servicios..."
+                                                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-zinc-100 hover:border-blue-200 focus:border-blue-500 outline-none transition-all text-sm bg-white font-medium"
+                                                    value={partSearch}
+                                                    onChange={e => { setPartSearch(e.target.value); setShowPartDropdown(true); }}
+                                                    onFocus={() => setShowPartDropdown(true)}
+                                                />
+                                            </div>
+
+                                            {showPartDropdown && partSearch.length > 0 && (
+                                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-2xl shadow-xl z-20 max-h-56 overflow-y-auto p-1">
+                                                    {filteredInventory.length === 0 ? (
+                                                        <div className="p-4 text-xs text-zinc-400 text-center italic">Sin resultados</div>
+                                                    ) : (
+                                                        filteredInventory.map(part => {
+                                                            const isLabor = part.name.toUpperCase().includes('SERVICIO') || 
+                                                                            part.name.toUpperCase().includes('M.O.') || 
+                                                                            part.name.toLowerCase().includes('mano de obra');
+                                                            const isOutOfStock = part.stock === 0 && !isLabor;
+                                                            return (
+                                                                <button
+                                                                    key={part.id}
+                                                                    type="button"
+                                                                    disabled={isOutOfStock}
+                                                                    onClick={() => handleSelectInventoryPart(part)}
+                                                                    className={cn(
+                                                                        "w-full flex items-center justify-between px-4 py-2.5 hover:bg-blue-50 transition-colors text-left rounded-xl mb-0.5 last:mb-0",
+                                                                        isOutOfStock && "opacity-40 cursor-not-allowed"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <Package className="w-4 h-4 text-blue-400 shrink-0" />
+                                                                        <div>
+                                                                            <span className="text-sm font-bold text-zinc-800 block">{part.name}</span>
+                                                                            <span className="text-[9px] text-zinc-400 font-bold uppercase">STOCK: {isLabor ? '∞' : part.stock}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <span className="text-xs font-black text-zinc-600">${part.price.toLocaleString('es-CL')}</span>
+                                                                </button>
+                                                            );
+                                                        })
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="w-20 relative">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                placeholder="Cant."
-                                                className="w-full px-3 py-3 rounded-xl border border-zinc-100 hover:border-zinc-200 focus:border-blue-500 outline-none transition-all text-sm font-bold text-center bg-zinc-50/50"
-                                                value={part.cantidad ?? ''}
-                                                onChange={(e) => handleSparePartChange(index, 'cantidad', e.target.value)}
-                                                disabled={isFinalized}
-                                            />
-                                        </div>
-                                        <div className="w-32 relative">
-                                            <input
-                                                type="number"
-                                                placeholder="Costo"
-                                                className="w-full px-4 py-3 rounded-xl border border-zinc-100 hover:border-zinc-200 focus:border-blue-500 outline-none transition-all text-sm font-black pl-7 bg-zinc-50/50"
-                                                value={part.costo || ''}
-                                                onChange={(e) => handleSparePartChange(index, 'costo', e.target.value)}
-                                                disabled={isFinalized}
-                                            />
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-300">$</span>
-                                        </div>
-                                        {!isFinalized && (
-                                            <button type="button" onClick={() => handleRemoveSparePart(index)} className="p-2 text-zinc-200 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        {spareParts.length === 0 && !isFinalized && (
+                                            <div className="text-center py-8 bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-200">
+                                                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Link de inventario pendiente</p>
+                                            </div>
                                         )}
+                                        {spareParts.map((part, index) => (
+                                            <div key={index} className="flex gap-2 items-center bg-white p-1 rounded-xl">
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Descripción"
+                                                        className={cn(
+                                                            "w-full px-3 py-2.5 rounded-lg border border-zinc-100 hover:border-zinc-200 focus:border-blue-500 outline-none transition-all text-[11px] font-bold bg-zinc-50/30",
+                                                            part.part_id && "text-blue-600 border-blue-50 bg-blue-50/10"
+                                                        )}
+                                                        value={part.descripcion}
+                                                        onChange={(e) => handleSparePartChange(index, 'descripcion', e.target.value)}
+                                                        disabled={isFinalized || !!part.part_id}
+                                                    />
+                                                </div>
+                                                <div className="w-14">
+                                                    <input
+                                                        type="number"
+                                                        className="w-full px-2 py-2.5 rounded-lg border border-zinc-100 focus:border-blue-500 outline-none text-center text-[11px] font-black bg-zinc-50/30"
+                                                        value={part.cantidad ?? ''}
+                                                        onChange={(e) => handleSparePartChange(index, 'cantidad', e.target.value)}
+                                                        disabled={isFinalized}
+                                                    />
+                                                </div>
+                                                <div className="w-24 relative">
+                                                    <input
+                                                        type="number"
+                                                        className="w-full pl-5 pr-2 py-2.5 rounded-lg border border-zinc-100 focus:border-blue-500 outline-none text-right text-[11px] font-black bg-zinc-50/30"
+                                                        value={part.costo || ''}
+                                                        onChange={(e) => handleSparePartChange(index, 'costo', e.target.value)}
+                                                        disabled={isFinalized}
+                                                    />
+                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-300">$</span>
+                                                </div>
+                                                {!isFinalized && (
+                                                    <button type="button" onClick={() => handleRemoveSparePart(index)} className="p-2 text-zinc-200 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
 
-                            <div className="flex flex-wrap items-center justify-start gap-4 pt-2">
-                                {!isFinalized && (
-                                    <button type="button" onClick={handleAddSparePart} className="flex items-center gap-2 text-xs font-black text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all border border-blue-100 border-dashed">
-                                        <PlusCircle className="w-4 h-4" />
-                                        AGREGAR SERVICIO EXTRA
-                                    </button>
-                                )}
+                                    {!isFinalized && (
+                                        <button type="button" onClick={handleAddSparePart} className="w-full flex items-center justify-center gap-2 text-[10px] font-black text-blue-500 hover:bg-blue-50 py-3 rounded-2xl transition-all border border-blue-100 border-dashed uppercase tracking-widest">
+                                            <PlusCircle className="w-4 h-4" />
+                                            Agregar concepto manual
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Facturación */}
+                                <div className="space-y-3 pt-3 border-t border-zinc-100">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <ShieldCheck className="w-3 h-3 text-zinc-400" />
+                                        <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Datos de Facturación</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[8px] font-black text-zinc-300 uppercase tracking-widest pl-1">RUT Empresa</label>
+                                            <input
+                                                type="text"
+                                                placeholder="76.123.456-1"
+                                                className="w-full px-3 py-2.5 rounded-xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all font-bold text-xs bg-white"
+                                                value={rutEmpresa}
+                                                onChange={e => setRutEmpresa(e.target.value)}
+                                                disabled={isFinalized}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[8px] font-black text-zinc-300 uppercase tracking-widest pl-1">Razón Social</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ej. Empresa SpA"
+                                                className="w-full px-3 py-2.5 rounded-xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all font-bold text-xs bg-white"
+                                                value={razonSocial}
+                                                onChange={e => setRazonSocial(e.target.value)}
+                                                disabled={isFinalized}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Mecánico Encargado */}
-                        <div className="space-y-4 pt-2">
-                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                                <User className="w-3.5 h-3.5" />
-                                Mecánico Encargado
-                            </label>
-                            <select
-                                className="w-full px-4 py-3.5 rounded-2xl border-2 border-zinc-100 focus:border-emerald-500 outline-none transition-all bg-white text-zinc-900 font-black text-xs uppercase tracking-wider"
-                                value={mechanicId}
-                                onChange={e => setMechanicId(e.target.value)}
-                                disabled={isFinalized}
-                            >
-                                <option value="Sin asignar">SIN ASIGNAR</option>
-                                {mechanics.map(m => (
-                                    <option key={m.id} value={m.id}>{m.name.toUpperCase()}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">RUT Empresa (Opcional Factura)</label>
-                                <input
-                                    type="text"
-                                    placeholder="Ej. 76.123.456-1"
-                                    className="w-full px-4 py-3 rounded-2xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all font-bold text-zinc-800 bg-white disabled:opacity-50"
-                                    value={rutEmpresa}
-                                    onChange={e => setRutEmpresa(e.target.value)}
-                                    disabled={isFinalized}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">Razón Social (Opcional Factura)</label>
-                                <input
-                                    type="text"
-                                    placeholder="Ej. Empresa SpA"
-                                    className="w-full px-4 py-3 rounded-2xl border-2 border-zinc-100 focus:border-blue-500 outline-none transition-all font-bold text-zinc-800 bg-white disabled:opacity-50"
-                                    value={razonSocial}
-                                    onChange={e => setRazonSocial(e.target.value)}
-                                    disabled={isFinalized}
-                                />
-                            </div>
-                        </div>
 
                         {/* Evidencia Fotográfica */}
                         <div className="space-y-5 pt-4">
@@ -517,65 +707,35 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
 
                         {/* Footer Actions */}
                         <div className="pt-6 border-t border-zinc-100 sticky bottom-0 bg-white pb-6 mt-8 -mx-6 md:-mx-8 px-6 md:px-8 space-y-4 -mb-6 md:-mb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.06)]">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                                    <div className="bg-zinc-900 px-6 py-3 rounded-2xl flex items-center gap-6 shadow-xl shadow-zinc-200 relative overflow-hidden group w-full sm:w-auto">
-                                        <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] relative z-10">Total a pagar</span>
+                            <div className="flex items-center justify-between gap-4">
+                                {/* Visualizador de Total */}
+                                <div className="bg-zinc-900 px-6 py-3.5 rounded-2xl flex items-center gap-6 shadow-xl shadow-zinc-200 relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] relative z-10 leading-none mb-1">Total Estimado</span>
                                         <span className="text-xl font-black text-white relative z-10 tabular-nums">
                                             ${totalInvestment.toLocaleString('es-CL')}
                                         </span>
                                     </div>
-
-                                    {/* Método de Pago Selector */}
-                                    <div className="flex flex-col gap-3 w-full sm:w-auto">
-                                        <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-xl w-full sm:w-auto">
-                                            {(['Tarjeta', 'Efectivo', 'Transferencia'] as const).map((m) => (
-                                                <button
-                                                    key={m}
-                                                    type="button"
-                                                    onClick={() => setPaymentMethod(m)}
-                                                    className={cn(
-                                                        "flex-1 sm:flex-none px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2",
-                                                        paymentMethod === m 
-                                                            ? "bg-white text-zinc-900 shadow-sm" 
-                                                            : "text-zinc-400 hover:text-zinc-600"
-                                                    )}
-                                                >
-                                                    {m === 'Transferencia' && <Send className="w-3 h-3" />}
-                                                    {m}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        {paymentMethod === 'Transferencia' && (
-                                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <textarea
-                                                    value={transferData}
-                                                    onChange={(e) => setTransferData(e.target.value)}
-                                                    placeholder="Datos de transferencia (Banco, Op, etc.)"
-                                                    className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-zinc-900 font-bold placeholder:text-zinc-300 transition-all resize-none h-12"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+
+                                {/* Acciones */}
+                                <div className="flex items-center gap-3">
                                     <button
                                         type="button"
                                         onClick={onClose}
-                                        className="px-6 py-3.5 text-xs font-black text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 rounded-2xl transition-all uppercase tracking-widest"
+                                        className="px-6 py-4 text-[10px] font-black text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 rounded-2xl transition-all uppercase tracking-widest"
                                     >
-                                        Cancelar
+                                        Descartar
                                     </button>
                                     {!isFinalized && (
                                         <button
                                             type="submit"
                                             disabled={loading || uploading}
-                                            className="flex-1 sm:flex-none flex items-center justify-center gap-3 px-8 py-3.5 text-xs font-black text-white bg-zinc-900 border border-zinc-900 hover:bg-black rounded-2xl transition-all shadow-xl shadow-zinc-200 uppercase tracking-widest disabled:opacity-50"
+                                            className="flex items-center justify-center gap-3 px-10 py-4 text-[10px] font-black text-white bg-zinc-900 border border-zinc-900 hover:bg-black rounded-2xl transition-all shadow-xl shadow-zinc-200 uppercase tracking-[0.2em] disabled:opacity-50"
                                         >
                                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                            {loading ? 'Sincronizando...' : 'Guardar'}
+                                            {loading ? 'Sincronizando...' : 'Guardar Servicio'}
                                         </button>
                                     )}
                                 </div>
@@ -601,12 +761,39 @@ export function EditTicketModal({ isOpen, onClose, ticket, mechanics, parts, onU
                                 </button>
                             </div>
                             <div className="flex-1 min-h-0">
-                                <VehicleHistoryView ticket={ticket} settings={settings} />
+                                <VehicleHistoryView ticket={ticket} allTickets={tickets} settings={settings} />
                             </div>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Modales de Recepción e Inspección */}
+            {ticket && (
+                <>
+                    <InspeccionModal
+                        isOpen={showInspectionModal}
+                        onClose={() => setShowInspectionModal(false)}
+                        ticket={{
+                            ...ticket,
+                            inspeccion: inspeccion || ticket.inspeccion,
+                            ingreso_checklist: checklistIngreso || ticket.ingreso_checklist
+                        }}
+                        onUpdate={async (id, updates) => {
+                            if (updates.inspeccion) {
+                                setInspeccion(updates.inspeccion as InspeccionDetalle);
+                            }
+                            if (updates.ingreso_checklist) {
+                                setChecklistIngreso(updates.ingreso_checklist as ChecklistIngreso);
+                            }
+                            // Save to database via the onUpdate prop passed from the parent of EditTicketModal
+                            if (onUpdate) {
+                                await onUpdate(id, updates);
+                            }
+                        }}
+                    />
+                </>
+            )}
         </div>
     );
 }

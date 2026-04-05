@@ -16,19 +16,19 @@ interface KanbanTicketCardProps {
   onDelete?: (ticket: Ticket) => void;
   onShowHistory?: (ticket: Ticket) => void;
   onShowCRM?: (ticket: Ticket) => void;
+  onShowChecklist?: (ticket: Ticket) => void;
+  onShowInspeccion?: (ticket: Ticket) => void;
 }
 
 const statusMap: Record<string, string> = {
-  'Ingresado': 'ingresado',
-  'En Espera': 'en espera',
+  'Ingreso': 'ingreso',
+  'En espera': 'en espera',
   'En Mantención': 'en proceso',
-  'Elevador 1': 'en proceso',
-  'Elevador 2': 'en proceso',
-  'Listo para Entrega': 'listo para entrega',
+  'Listo para entrega': 'listo para entrega',
   'Finalizado': 'entregado'
 };
 
-export function KanbanTicketCard({ ticket, settings, selectedMechanic, isDragged, onDragStart, onEdit, onDelete, onShowHistory, onShowCRM }: KanbanTicketCardProps) {
+export function KanbanTicketCard({ ticket, settings, selectedMechanic, isDragged, onDragStart, onEdit, onDelete, onShowHistory, onShowCRM, onShowChecklist, onShowInspeccion }: KanbanTicketCardProps) {
   const entryDate = ticket.entry_date ? parseISO(ticket.entry_date) : new Date();
   const isValidDate = !isNaN(entryDate.getTime());
   
@@ -47,21 +47,71 @@ export function KanbanTicketCard({ ticket, settings, selectedMechanic, isDragged
 
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!settings || !ticket.owner_phone) return;
+    console.log('handleWhatsApp triggered for ticket:', ticket.id);
+    if (!ticket.owner_phone) {
+      alert("Este cliente no tiene un teléfono registrado.");
+      return;
+    }
 
-    const friendlyStatus = statusMap[ticket.status] || 'en proceso';
-    const vehicleModel = ticket.model || 'su vehículo';
+    try {
+      const friendlyStatus = statusMap[ticket.status] || 'en proceso';
+      const vehicleModel = ticket.model || 'su vehículo';
 
-    const message = (settings.whatsapp_template || 'Hola {{cliente}}, tu {{vehiculo}} está {{estado}}.')
-      .replace(/{{cliente}}/g, ticket.owner_name)
-      .replace(/{{vehiculo}}/g, vehicleModel)
-      .replace(/{{estado}}/g, friendlyStatus)
-      .replace(/{{nombre_taller}}/g, settings.workshop_name || 'nuestro taller')
-      .replace(/{{telefono_taller}}/g, settings.phone || '');
+      const tpl = settings?.whatsapp_template || 'Hola {{cliente}}, tu {{vehiculo}} está {{estado}}.';
+      const message = tpl
+        .replace(/{{cliente}}/g, ticket.owner_name)
+        .replace(/{{vehiculo}}/g, vehicleModel)
+        .replace(/{{estado}}/g, friendlyStatus)
+        .replace(/{{nombre_taller}}/g, settings?.workshop_name || 'nuestro taller')
+        .replace(/{{telefono_taller}}/g, settings?.phone || '');
 
-    const encodedMessage = encodeURIComponent(message);
-    const phone = ticket.owner_phone.replace(/\D/g, '');
-    window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank');
+      const encodedMessage = encodeURIComponent(message);
+      const phone = ticket.owner_phone.replace(/\D/g, '');
+      const url = `https://wa.me/${phone}?text=${encodedMessage}`;
+      console.log('Opening WhatsApp with URL:', url);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Error in handleWhatsApp:', err);
+      alert("Hubo un error al intentar abrir WhatsApp. Verifique los datos del ticket.");
+    }
+  };
+
+  const handleWhatsAppCotizacion = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('handleWhatsAppCotizacion triggered for ticket:', ticket.id);
+    if (!ticket.owner_phone) {
+      alert("Este cliente no tiene un teléfono registrado.");
+      return;
+    }
+
+    try {
+      const vehicleModel = ticket.model || 'su vehículo';
+      const rawTotal = ticket.quotation_total || 0;
+      const total = typeof rawTotal === 'number' ? `$${rawTotal.toLocaleString('es-CL')}` : `$${rawTotal}`;
+      
+      const portalLink = `${window.location.origin}/?t=${settings?.company_slug || 'consulta'}&p=${ticket.patente || ''}`;
+      
+      const tpl = localStorage.getItem('garage_quotation_template') || 
+        'Hola {{cliente}}, ya tenemos los resultados de la inspección técnica de {{vehiculo}}.\n\nEl total de su cotización es {{total}}.\nPuede ver el detalle completo, fotos de ingreso, fotos de inspección y confirmar su presupuesto aquí: {{link_portal}}';
+
+      const message = tpl
+        .replace(/{{cliente}}/g, ticket.owner_name)
+        .replace(/{{vehiculo}}/g, vehicleModel)
+        .replace(/{{patente}}/g, ticket.patente || '')
+        .replace(/{{total}}/g, total)
+        .replace(/{{link_portal}}/g, portalLink)
+        .replace(/{{nombre_taller}}/g, settings?.workshop_name || 'nuestro taller')
+        .replace(/{{telefono_taller}}/g, settings?.phone || '');
+
+      const encodedMessage = encodeURIComponent(message);
+      const phone = ticket.owner_phone.replace(/\D/g, '');
+      const url = `https://wa.me/${phone}?text=${encodedMessage}`;
+      console.log('Opening WhatsApp Quote with URL:', url);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Error in handleWhatsAppCotizacion:', err);
+      alert("Hubo un error al procesar la cotización. Revise el monto total.");
+    }
   };
 
   return (
@@ -73,7 +123,10 @@ export function KanbanTicketCard({ ticket, settings, selectedMechanic, isDragged
         "bg-white p-2.5 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm border border-zinc-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-all group flex flex-col gap-2",
         isDragged && "opacity-50 ring-2 ring-emerald-500",
         isAttenuated && !isDragged && "opacity-40 grayscale-[0.8] hover:opacity-100 hover:grayscale-0",
-        ticket.status === 'Finalizado' && "cursor-pointer" // Permite clic aunque no sea draggeable
+        ticket.status === 'Finalizado' && "cursor-pointer",
+        ticket.status_general === 'green' && "border-emerald-100",
+        ticket.status_general === 'yellow' && "border-amber-100 bg-amber-50/5",
+        ticket.status_general === 'red' && "border-red-100 bg-red-50/5",
       )}
     >
       <div className="flex justify-between items-start">
@@ -87,7 +140,15 @@ export function KanbanTicketCard({ ticket, settings, selectedMechanic, isDragged
             className="group/plate flex items-center bg-white border-[2px] border-zinc-900 rounded-md shadow-sm mb-1.5 w-max hover:bg-zinc-50 transition-all active:scale-95 overflow-hidden ring-1 ring-zinc-200"
             title="Ver historial completo del vehículo"
           >
-            <div className="w-1.5 h-full bg-blue-600 self-stretch flex items-center justify-center py-0.5">
+            <div className={cn(
+              "w-1.5 h-full self-stretch flex items-center justify-center py-0.5 transition-colors duration-500",
+              {
+                green: "bg-emerald-500",
+                yellow: "bg-amber-500",
+                red: "bg-red-500",
+                gray: "bg-blue-600"
+              }[ticket.status_general || 'gray']
+            )}>
               <div className="w-0.5 h-0.5 bg-white rounded-full"></div>
             </div>
             <div className="px-1.5 py-0 flex items-center gap-1.5">
@@ -102,7 +163,7 @@ export function KanbanTicketCard({ ticket, settings, selectedMechanic, isDragged
         </div>
         
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-          {(ticket.status === 'Ingresado' || ticket.status === 'En Espera') && (
+          {(ticket.status === 'Ingreso' || ticket.status === 'En espera') && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -147,6 +208,55 @@ export function KanbanTicketCard({ ticket, settings, selectedMechanic, isDragged
         </div>
       )}
 
+      {/* Botones de Checklist e Inspección */}
+      {ticket.status !== 'Finalizado' && (
+        <div className="flex gap-2 mt-1.5 pt-1.5 border-t border-zinc-100">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowChecklist?.(ticket);
+            }}
+            className={cn(
+              "flex-1 py-1 px-2 rounded-lg text-[9px] font-bold transition-colors flex items-center justify-center gap-1",
+              ticket.ingreso_checklist 
+                ? "bg-green-50 text-green-700 border border-green-200" 
+                : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+            )}
+          >
+            📋 {ticket.ingreso_checklist ? 'Checklist ✓' : 'Checklist'}
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowInspeccion?.(ticket);
+            }}
+            className={cn(
+              "flex-1 py-1 px-2 rounded-lg text-[9px] font-black transition-all flex items-center justify-center gap-1.5 uppercase tracking-tighter border-2",
+              !ticket.inspeccion || !ticket.inspeccion.checklist || ticket.inspeccion.checklist.length === 0
+                ? "bg-zinc-50 text-zinc-400 border-zinc-100 opacity-60"
+                : {
+                    green: "bg-emerald-50 text-emerald-700 border-emerald-200 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
+                    yellow: "bg-amber-50 text-amber-700 border-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.1)]",
+                    red: "bg-red-50 text-red-700 border-red-200 shadow-[0_0_10px_rgba(239,68,68,0.1)]",
+                    gray: "bg-zinc-50 text-zinc-500 border-zinc-200"
+                  }[ticket.inspeccion?.status_general || 'gray']
+            )}
+          >
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              {
+                green: "bg-emerald-500",
+                yellow: "bg-amber-500",
+                red: "bg-red-500",
+                gray: "bg-zinc-300"
+              }[ticket.inspeccion?.status_general || 'gray']
+            )} />
+            {ticket.inspeccion?.checklist && ticket.inspeccion.checklist.length > 0 ? 'Inspección' : 'Sin Inspección'}
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mt-auto">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-1.5 text-[10px] text-zinc-600 font-bold truncate">
@@ -180,15 +290,15 @@ export function KanbanTicketCard({ ticket, settings, selectedMechanic, isDragged
             </div>
           )}
 
-          {/* Botón rápido WhatsApp si está Listo para Entrega o En Espera */}
-          {(ticket.status === 'Listo para Entrega' || ticket.status === 'En Espera') && (
+          {/* Botón rápido WhatsApp si está Listo para entrega o En espera */}
+          {(ticket.status === 'Listo para entrega' || ticket.status === 'En espera') && (
             <button
-              onClick={handleWhatsApp}
+              onClick={ticket.status === 'En espera' ? handleWhatsAppCotizacion : handleWhatsApp}
               className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 rounded-lg text-[10px] font-bold transition-colors border border-emerald-200 shadow-sm"
-              title="Avisar por WhatsApp"
+              title={ticket.status === 'En espera' ? "Compartir Cotización" : "Avisar por WhatsApp"}
             >
               <MessageCircle className="w-3 h-3 flex-shrink-0" />
-              <span>Avisar</span>
+              <span>{ticket.status === 'En espera' ? 'Cotización' : 'Avisar'}</span>
             </button>
           )}
         </div>

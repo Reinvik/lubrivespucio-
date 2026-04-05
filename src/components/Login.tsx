@@ -35,10 +35,10 @@ export function Login({ onLogin, onCustomerSearch, onOpenBooking, branding }: Lo
   // Paleta de colores Premium
   // Si es amarillo brillante (#f2ea18), lo pasamos a un Amarillo/Oro elegante y legible
   const getPremiumColor = (hex?: string) => {
-    if (!hex || hex === '#10b981') return '#D6A621'; // Roma Gold default
+    if (!hex || hex === '#D6A621') return '#10b981'; // Vespucio Emerald default
     const cleanHex = hex.toLowerCase();
-    // Amarillo Roma Center Exacto: #D6A621
-    if (cleanHex === '#f2ea18' || cleanHex === '#ffff00' || cleanHex.includes('yellow') || window.location.search.includes('roma-center')) return '#D6A621'; 
+    // Amarillo Lubricentro Vespucio Legacy: #D6A621. We override it to Emerald if detected.
+    if (cleanHex === '#d6a621' || cleanHex === '#f2ea18' || cleanHex === '#ffff00' || cleanHex.includes('yellow')) return '#10b981'; 
     return hex;
   };
 
@@ -181,7 +181,7 @@ export function Login({ onLogin, onCustomerSearch, onOpenBooking, branding }: Lo
               />
             ) : (
               <div className="w-24 h-24 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl">
-                <img src="/logo3.png" alt="Roma Center Logo" className="w-16 h-16 object-contain" />
+                <img src="/logo3.png" alt="Vespucio Logo" className="w-16 h-16 object-contain" />
               </div>
             )}
           </div>
@@ -227,10 +227,10 @@ export function Login({ onLogin, onCustomerSearch, onOpenBooking, branding }: Lo
               <p className="text-red-500/80 text-sm font-medium">{error}</p>
             )}
 
-            <button
+              <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-zinc-100 text-black rounded-xl font-black transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] disabled:opacity-50 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-zinc-100 text-black rounded-xl font-black transition-all shadow-[0_0_20px_rgba(16,185,129,0.1)] hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] disabled:opacity-50 active:scale-[0.98]"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

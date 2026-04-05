@@ -1,134 +1,251 @@
 import React, { useState, useEffect } from 'react';
-import { X, Car, Calendar, History, Wrench, Edit3, Save, MessageSquare, Tag, Phone } from 'lucide-react';
+import { X, Car, Calendar, History, Wrench, Edit3, Save, MessageSquare, Tag, Phone, CheckCircle2, ShieldCheck, MoreVertical, Edit2, AlertCircle, PenTool } from 'lucide-react';
 import { Ticket } from '../types';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { VehicleHistoryView } from './VehicleHistoryView';
+import { cn } from '../lib/utils';
 
 interface VehicleCRMModalProps {
   isOpen: boolean;
   onClose: () => void;
   ticket: Ticket | null;
-  onUpdateNotes: (id: string, notes: string) => Promise<void>;
+  allTickets?: Ticket[];
+  onUpdateNotes?: (patente: string, notes: string) => Promise<void>;
   settings?: any;
 }
 
-export function VehicleCRMModal({ isOpen, onClose, ticket, onUpdateNotes, settings }: VehicleCRMModalProps) {
+export function VehicleCRMModal({ isOpen, onClose, ticket, allTickets = [], onUpdateNotes, settings }: VehicleCRMModalProps) {
+  const [vehicleNotes, setVehicleNotes] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const primaryColor = settings?.theme_menu_highlight || '#10b981';
-  const primaryBg = primaryColor.startsWith('#') && primaryColor.length === 7 ? `${primaryColor}20` : 'rgba(16, 185, 129, 0.2)';
+  // Find the most recent vehicle notes from any ticket in the history
+  const latestVehicleNotes = allTickets
+    .filter(t => (t.patente || t.id).toUpperCase() === (ticket?.patente || ticket?.id)?.toUpperCase() && t.vehicle_notes)
+    .sort((a, b) => new Date(b.created_at || b.entry_date).getTime() - new Date(a.created_at || a.entry_date).getTime())[0]?.vehicle_notes;
 
   useEffect(() => {
     if (ticket) {
-      setNotes(ticket.vehicle_notes || '');
-      setIsEditingNotes(false);
+      setVehicleNotes(ticket.vehicle_notes || latestVehicleNotes || '');
     }
-  }, [ticket]);
+  }, [ticket, latestVehicleNotes]);
 
   if (!isOpen || !ticket) return null;
 
   const handleSaveNotes = async () => {
+    if (!onUpdateNotes || !ticket) return;
     setSaving(true);
     try {
-      await onUpdateNotes(ticket.id, notes);
+      await onUpdateNotes(ticket.patente || ticket.id, vehicleNotes);
       setIsEditingNotes(false);
     } catch (error) {
-      console.error('Error saving notes', error);
+      console.error('Error saving notes:', error);
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-6 z-50">
-      <div className="bg-zinc-50 rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in duration-200 font-sans">
+    <div className="fixed inset-0 bg-zinc-900/50 backdrop-blur-md flex items-center justify-center z-[60] p-4 font-sans border-0 outline-none">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col relative border border-zinc-200">
         
         {/* Header */}
-        <div className="bg-zinc-900 text-white p-6 md:p-8 flex items-start justify-between relative overflow-hidden shrink-0">
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" style={{ backgroundColor: `${primaryColor}20` }}></div>
-          
-          <div className="flex gap-5 relative z-10">
-            <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center border border-zinc-700 shadow-inner">
-              <Car className="w-8 h-8" style={{ color: primaryColor }} />
+        <div className="flex justify-between items-center p-6 border-b border-zinc-100 bg-white z-10 sticky top-0">
+          <div className="flex items-center gap-4">
+            <div className="flex -space-x-2">
+              <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-white ring-4 ring-white shadow-lg">
+                <Car className="w-5 h-5" />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white ring-4 ring-white shadow-lg">
+                <History className="w-5 h-5" />
+              </div>
             </div>
             <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-3xl font-black tracking-widest uppercase bg-white text-zinc-900 px-3 py-1 rounded-lg">
-                  {ticket.patente || ticket.id}
-                </h2>
-              </div>
-              <p className="text-zinc-400 font-medium text-lg">{ticket.model}</p>
+              <h2 className="text-xl font-black text-zinc-900 tracking-tight leading-none mb-1">CRM Vehicular</h2>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{ticket.model} • {ticket.patente || ticket.id}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white rounded-xl transition-colors relative z-10">
+          <button onClick={onClose} className="p-3 text-zinc-400 hover:text-zinc-600 rounded-full hover:bg-zinc-100 transition-all active:scale-95 border border-transparent hover:border-zinc-200">
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content using extracted component */}
-          <div className="lg:col-span-2">
-            <VehicleHistoryView ticket={ticket} settings={settings} />
+        {/* Content */}
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-4 gap-0">
+          {/* Main History (Takes 3/4) */}
+          <div className="lg:col-span-3 border-r border-zinc-100 overflow-y-auto">
+            <VehicleHistoryView 
+              ticket={ticket} 
+              allTickets={allTickets} 
+              settings={settings}
+              embedded
+            />
           </div>
 
-          {/* Right Column: Actions and Owner info */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Notas Globales del Vehículo (Admin) */}
+          {/* Secondary Info (Takes 1/4) */}
+          <div className="lg:col-span-1 bg-zinc-50/30 p-6 overflow-y-auto space-y-6">
+            
+            {/* Ficha Vehículo */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-zinc-200">
-               <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-zinc-900 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-purple-600" />
-                    Observaciones Internas
-                  </h3>
-                  {!isEditingNotes && (ticket.status !== 'Finalizado' && ticket.status !== 'Entregado') && (
-                    <button onClick={() => setIsEditingNotes(true)} className="p-1.5 text-zinc-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                
-                {isEditingNotes ? (
-                  <div className="flex flex-col gap-3">
-                    <textarea
-                      className="w-full text-sm p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-purple-500 min-h-[120px] resize-none text-zinc-700"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => setIsEditingNotes(false)} className="px-3 py-1.5 text-xs font-bold text-zinc-500">Cancelar</button>
-                      <button onClick={handleSaveNotes} disabled={saving} className="px-3 py-1.5 text-xs font-bold bg-purple-600 text-white rounded-lg">
-                        {saving ? 'Guardando...' : 'Guardar'}
-                      </button>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-zinc-900 text-xs uppercase tracking-widest">Ficha Técnica</h3>
+                <Tag className="w-4 h-4 text-zinc-300" />
+              </div>
+              
+              <div className="space-y-4">
+                <div className="group/plate inline-flex items-center bg-white border-[2px] border-zinc-900 rounded-md shadow-sm overflow-hidden ring-1 ring-zinc-100">
+                  <div className="bg-blue-800 w-3 h-full self-stretch flex flex-col items-center justify-center py-1">
+                    <div className="flex flex-col gap-0.5 items-center">
+                      <div className="w-1.5 h-1.5 border-[0.5px] border-white/50 rounded-full flex items-center justify-center">
+                        <div className="w-0.5 h-0.5 bg-yellow-400 rounded-full" />
+                      </div>
+                      <span className="text-[4px] text-white/70 font-bold leading-none">CHILE</span>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-zinc-600 leading-relaxed italic">{ticket.vehicle_notes || 'Sin observaciones...'}</p>
-                )}
+                  <div className="px-3 py-1 font-black text-xl tracking-tighter text-zinc-900 uppercase">
+                    {ticket.patente || ticket.id}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2.5">
+                  <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                    <div className="text-[9px] text-zinc-400 uppercase font-black leading-none mb-1.5">Marca y Modelo</div>
+                    <div className="font-bold text-zinc-900 text-sm">{ticket.model}</div>
+                  </div>
+                  
+                  {(ticket.vin || ticket.engine_id) && (
+                    <div className="grid grid-cols-1 gap-2">
+                      {ticket.vin && (
+                        <div className="bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
+                          <div className="text-[9px] text-zinc-400 uppercase font-black leading-none mb-1.5 flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" /> N° Chasis (VIN)
+                          </div>
+                          <div className="font-mono text-[10px] font-bold text-zinc-600 truncate" title={ticket.vin}>
+                            {ticket.vin}
+                          </div>
+                        </div>
+                      )}
+                      {ticket.engine_id && (
+                        <div className="bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
+                          <div className="text-[9px] text-zinc-400 uppercase font-black leading-none mb-1.5 flex items-center gap-1">
+                            <Wrench className="w-3 h-3" /> N° Motor
+                          </div>
+                          <div className="font-mono text-[10px] font-bold text-zinc-600 truncate" title={ticket.engine_id}>
+                            {ticket.engine_id}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Ficha Dueño */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-zinc-200">
-              <h3 className="font-bold text-zinc-900 mb-4 text-xs uppercase tracking-widest text-zinc-400">Propietario</h3>
+              <h3 className="font-bold text-zinc-900 mb-4 text-xs uppercase tracking-widest">Propietario</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold">
+                  <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold ring-2 ring-zinc-50 shadow-sm">
                     {ticket.owner_name.charAt(0)}
                   </div>
                   <div>
                     <div className="text-[10px] text-zinc-400 uppercase font-black leading-none">Nombre</div>
-                    <div className="font-bold text-zinc-900">{ticket.owner_name}</div>
+                    <div className="font-bold text-zinc-900 text-sm">{ticket.owner_name}</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+
+                <a 
+                  href={`https://wa.me/56${ticket.owner_phone.replace(/\s/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 group/wa hover:translate-x-1 transition-transform cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover/wa:bg-emerald-600 group-hover/wa:text-white transition-colors">
                     <Phone className="w-4 h-4" />
                   </div>
-                  <div className="font-bold text-zinc-900">{ticket.owner_phone}</div>
-                </div>
+                  <div>
+                    <div className="text-[10px] text-zinc-400 uppercase font-black tracking-widest leading-none">WhatsApp</div>
+                    <div className="font-bold text-emerald-700 group-hover/wa:text-emerald-800 transition-colors flex items-center gap-1">
+                      {ticket.owner_phone}
+                      <span className="text-[10px] bg-emerald-50 text-emerald-600 px-1 rounded border border-emerald-100 uppercase">Contactar</span>
+                    </div>
+                  </div>
+                </a>
+
+                {(ticket.rut_empresa || ticket.razon_social) && (
+                  <div className="pt-4 border-t border-zinc-100 space-y-4">
+                    {ticket.rut_empresa && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-zinc-400 uppercase font-black leading-none">RUT Empresa</div>
+                          <div className="font-bold text-zinc-900">{ticket.rut_empresa}</div>
+                        </div>
+                      </div>
+                    )}
+                    {ticket.razon_social && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-zinc-400 uppercase font-black leading-none">Razón Social</div>
+                          <div className="font-bold text-zinc-900 text-xs lines-clamp-2">{ticket.razon_social}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+            </div>
+
+            {/* Observaciones Permanentes (Notas del Vehículo) */}
+            <div className="bg-amber-50 rounded-2xl p-5 shadow-sm border-2 border-amber-200 animate-in zoom-in-95 duration-500">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
+                    <h3 className="font-black text-amber-900 text-[10px] uppercase tracking-[0.1em]">Notas Permanentes del Vehículo</h3>
+                  </div>
+                  <button 
+                    onClick={() => setIsEditingNotes(true)}
+                    className="p-1.5 text-amber-500 hover:text-amber-700 rounded-lg hover:bg-amber-100 transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                
+                {isEditingNotes ? (
+                  <div className="space-y-3">
+                    <textarea 
+                      className="w-full h-32 p-3 text-xs bg-white border-2 border-amber-300 rounded-xl focus:ring-4 focus:ring-amber-500/10 outline-none resize-none font-bold text-amber-900"
+                      value={vehicleNotes}
+                      onChange={(e) => setVehicleNotes(e.target.value)}
+                      placeholder="Escribe notas técnicas permanentes (ej: consume aceite, perno rodado...)"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setIsEditingNotes(false)} className="px-3 py-1.5 text-[10px] font-black text-amber-600 uppercase">Cancelar</button>
+                      <button onClick={handleSaveNotes} disabled={saving} className="px-4 py-1.5 text-[10px] font-black bg-amber-600 text-white rounded-lg shadow-md shadow-amber-200 uppercase">
+                        {saving ? 'Guardando...' : 'Fijar Nota'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative group/note cursor-pointer" onClick={() => setIsEditingNotes(true)}>
+                    <div className="absolute -right-1 -top-1 opacity-0 group-hover/note:opacity-100 transition-opacity">
+                       <PenTool className="w-4 h-4 text-amber-400 rotate-12" />
+                    </div>
+                    <p className={cn(
+                      "text-xs leading-relaxed font-bold italic",
+                      (ticket.vehicle_notes || latestVehicleNotes) ? "text-amber-950" : "text-amber-400"
+                    )}>
+                      {ticket.vehicle_notes || latestVehicleNotes || 'Registra datos críticos aquí: fugas, daños previos, cuidados especiales...'}
+                    </p>
+                  </div>
+                )}
             </div>
           </div>
         </div>

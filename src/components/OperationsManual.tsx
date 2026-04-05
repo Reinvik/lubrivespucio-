@@ -62,7 +62,7 @@ export function OperationsManual({ themeColor = '#10b981' }: OperationsManualPro
 
     // Header
     addTitle('MANUAL DE OPERACIONES Y ESTÁNDARES DE ATENCIÓN');
-    addSubtitle('Roma Center SpA | Plataforma: Nexus Garage');
+    addSubtitle('Lubricentro Vespucio | Plataforma: Nexus Garage');
     y += 5;
     addParagraph('Objetivo: Asegurar una comunicación transparente, profesional y estandarizada. Nuestra meta es eliminar la incertidumbre y utilizar Nexus Garage para respaldar cada diagnóstico, evitando reclamos y malos entendidos.');
 
@@ -95,7 +95,7 @@ export function OperationsManual({ themeColor = '#10b981' }: OperationsManualPro
     addBullet('Upsell: Mostrar desgaste de piezas físicamente con tablet en mano.');
     addBullet('Cierre: Enfatizar recordatorios automáticos de WhatsApp.');
 
-    doc.save('Manual_Operaciones_Roma_Center.pdf');
+    doc.save('Manual_Operaciones_Vespucio.pdf');
   };
 
   return (
@@ -113,7 +113,7 @@ export function OperationsManual({ themeColor = '#10b981' }: OperationsManualPro
           </div>
           <div>
             <h2 className="text-2xl md:text-4xl font-black text-zinc-900 tracking-tighter leading-tight">Manual de Operaciones</h2>
-            <p className="text-sm md:text-lg text-zinc-500 font-medium">Excelencia Clínica y Estándares Roma Center</p>
+            <p className="text-sm md:text-lg text-zinc-500 font-medium">Excelencia Clínica y Estándares Vespucio</p>
           </div>
         </div>
         <button 

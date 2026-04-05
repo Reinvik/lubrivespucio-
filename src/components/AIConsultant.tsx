@@ -89,7 +89,7 @@ export function AIConsultant({ tickets, parts, customers, salaVentas, mechanics,
     const lowStockParts = parts.filter(p => p.stock <= p.min_stock);
     
     const context = `
-Eres el "Cerebro Operativo" de ${settings?.workshop_name || 'Roma Center SPA'}. 
+Eres el "Cerebro Operativo" de ${settings?.workshop_name || 'Lubricentro Vespucio SPA'}. 
 TU REGLA #1: Sé extremadamente conciso. Menos prosa, más datos y acción. Analiza solo rendimiento, volumen y eficiencia. IGNORA POR COMPLETO EL DINERO Y LOS COSTOS.
 
 VOLUMEN Y RENDIMIENTO MECÁNICOS:
