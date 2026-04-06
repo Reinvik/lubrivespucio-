@@ -15,6 +15,8 @@ interface SalaVentasProps {
   tickets: Ticket[];
   onAddSalaVenta: (items: SalaVentaItem[], paymentMethod: PaymentMethod, documentType: DocumentType, rutEmpresa?: string, razonSocial?: string, notes?: string, transferData?: string) => Promise<void>;
   fetchSalaVentas: (days?: number) => Promise<SalaVenta[]>;
+  onDeleteSalaVenta: (id: string) => Promise<void>;
+  onDeleteTicket?: (id: string) => Promise<void>;
   salaVentas: SalaVenta[];
   settings: GarageSettings | null;
 }
@@ -24,7 +26,7 @@ interface CartItem {
   cantidad: number;
 }
 
-export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, salaVentas, settings }: SalaVentasProps) {
+export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, onDeleteSalaVenta, onDeleteTicket, salaVentas, settings }: SalaVentasProps) {
   const primaryColor = settings?.theme_button_color || '#f97316';
   
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -75,6 +77,33 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
       return newQty <= 0 ? null! : { ...c, cantidad: newQty };
     }).filter(Boolean));
   }, []);
+
+  const handleDelete = async (item: any) => {
+    // 1. Password check
+    const adminPass = settings?.admin_password;
+    if (adminPass) {
+      const pass = window.prompt("Ingrese contraseña de administrador para eliminar:");
+      if (!pass) return;
+      if (pass !== adminPass) {
+        alert("Contraseña incorrecta");
+        return;
+      }
+    }
+
+    if (!window.confirm("¿Está seguro que desea eliminar este registro? Esta acción es irreversible y repondrá el stock (en ventas de mesón).")) return;
+
+    try {
+      if (item.type === 'venta') {
+        await onDeleteSalaVenta(item.id);
+      } else if (onDeleteTicket) {
+        await onDeleteTicket(item.id);
+      }
+      fetchSalaVentas();
+    } catch (error: any) {
+      console.error(error);
+      alert("Error al eliminar: " + (error.message || error));
+    }
+  };
 
   const cartTotal = useMemo(() =>
     cart.reduce((acc, c) => acc + c.part.price * c.cantidad, 0), [cart]);
@@ -408,7 +437,7 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
             <div className="flex flex-col gap-2">
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Método de Pago</label>
               <div className="grid grid-cols-3 gap-2">
-                {(['Efectivo', 'Tarjeta', 'Transferencia'] as const).map(m => (
+                {(['Transferencia', 'Efectivo', 'Tarjeta'] as const).map(m => (
                   <button
                     key={m}
                     onClick={() => setPaymentMethod(m)}
@@ -574,12 +603,21 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                           </div>
                         )}
                       </div>
-                      <div className="text-right flex flex-col items-end">
-                        <div className={`text-sm font-black whitespace-nowrap ${item.type === 'venta' ? 'text-emerald-400' : 'text-blue-400'}`}>
-                          ${item.total.toLocaleString()}
+                      <div className="text-right flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleDelete(item)}
+                            className="p-1.5 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                            title="Eliminar registro"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <div className={`text-sm font-black whitespace-nowrap ${item.type === 'venta' ? 'text-emerald-400' : 'text-blue-400'}`}>
+                            ${item.total.toLocaleString()}
+                          </div>
                         </div>
                         <div className={cn(
-                          "text-[9px] font-black uppercase tracking-tighter mt-1 px-2 py-0.5 rounded-md border italic",
+                          "text-[9px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-md border italic",
                           item.payment_method === 'Efectivo' 
                             ? "bg-amber-500/10 text-amber-400 border-amber-500/20" 
                             : item.payment_method === 'Transferencia'
@@ -589,20 +627,22 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
                           {item.payment_method || 'Tarjeta'}
                         </div>
                         {item.transfer_data && (
-                          <div className="text-[8px] text-zinc-500 mt-1 max-w-[120px] truncate">
+                          <div className="text-[8px] text-zinc-500 max-w-[120px] truncate">
                             {item.transfer_data}
                           </div>
                         )}
-                        {item.document_type === 'Factura' && (
-                          <div className="text-[9px] font-black uppercase tracking-tighter mt-1 px-2 py-0.5 rounded-md border bg-red-500/10 text-red-500 border-red-500/20">
-                            Factura
-                          </div>
-                        )}
-                        {item.document_type === 'Boleta' && (
-                          <div className="text-[9px] font-black uppercase tracking-tighter mt-1 px-2 py-0.5 rounded-md border bg-zinc-500/10 text-zinc-500 border-zinc-500/20">
-                            Boleta
-                          </div>
-                        )}
+                        <div className="flex gap-1.5">
+                          {item.document_type === 'Factura' && (
+                            <div className="text-[9px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-md border bg-red-500/10 text-red-500 border-red-500/20">
+                              Factura
+                            </div>
+                          )}
+                          {item.document_type === 'Boleta' && (
+                            <div className="text-[9px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-md border bg-zinc-500/10 text-zinc-500 border-zinc-500/20">
+                              Boleta
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -616,27 +656,27 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, sa
               <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Resumen {labelRange}</span>
               <span className="text-xl font-black" style={{ color: primaryColor }}>${totalPeriod.toLocaleString()}</span>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight flex items-center gap-1.5 font-mono">
+                <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-tight flex items-center gap-1 font-mono">
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                  Transf
+                </div>
+                <p className="text-xs font-black text-zinc-200">${transferTotal.toLocaleString()}</p>
+              </div>
+              <div className="space-y-1 text-center border-x border-zinc-800/50">
+                <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-tight flex items-center gap-1 justify-center font-mono">
                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
                   Efectivo
                 </div>
-                <p className="text-sm font-black text-zinc-200">${cashTotal.toLocaleString()}</p>
+                <p className="text-xs font-black text-zinc-200">${cashTotal.toLocaleString()}</p>
               </div>
-              <div className="space-y-1 text-center">
-                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight flex items-center gap-1.5 justify-center font-mono">
+              <div className="space-y-1 text-right">
+                <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-tight flex items-center gap-1 justify-end font-mono">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                   Tarjeta
                 </div>
-                <p className="text-sm font-black text-zinc-200">${cardTotal.toLocaleString()}</p>
-              </div>
-              <div className="space-y-1 text-right">
-                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight flex items-center gap-1.5 justify-end font-mono">
-                  Transf.
-                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                </div>
-                <p className="text-sm font-black text-zinc-200">${transferTotal.toLocaleString()}</p>
+                <p className="text-xs font-black text-zinc-200">${cardTotal.toLocaleString()}</p>
               </div>
             </div>
           </div>

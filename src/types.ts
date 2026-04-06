@@ -184,11 +184,13 @@ export interface LandingPageConfig {
   // Brand
   header_logo_url?: string;
   location_image_url?: string;
+  gallery_images?: string[];
   // Theme / Colors
   theme_primary_color?: string;
   theme_secondary_color?: string;
   theme_accent_color?: string;
   theme_background_color?: string;
+  theme_text_color?: string;
   theme_border_radius?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
 }
 
@@ -213,7 +215,18 @@ export interface GarageSettings {
   theme_menu_text?: string;
   theme_menu_highlight?: string;
   theme_button_color?: string;
+  theme_sidebar_bg?: string;
+  theme_sidebar_active_bg?: string;
+  theme_sidebar_text?: string;
+  theme_sidebar_active_text?: string;
+  theme_main_bg?: string;
+  theme_card_bg?: string;
+  theme_accent_color?: string;
+  theme_header_bg?: string;
+  theme_header_text?: string;
   company_slug?: string;
+  favicon_url?: string;
+  admin_password?: string;
   services_catalog?: LubriService[];
   pricing?: ServicePricing;
   landing_config?: LandingPageConfig;

@@ -111,6 +111,18 @@ export function FinishTicketModal({ isOpen, ticket, tickets, onConfirm, onCancel
             {/* Payment Method Selection */}
             <div className="grid grid-cols-2 gap-2">
               <button
+                onClick={() => setPaymentMethod('Transferencia')}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all col-span-2 ${
+                  paymentMethod === 'Transferencia' 
+                    ? 'bg-purple-50 border-purple-500 shadow-sm' 
+                    : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-200'
+                }`}
+              >
+                <Send className="w-4 h-4" />
+                <span className="font-black text-xs uppercase tracking-wider">Transferencia</span>
+              </button>
+
+              <button
                 onClick={() => setPaymentMethod('Efectivo')}
                 className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
                   paymentMethod === 'Efectivo' 
@@ -132,18 +144,6 @@ export function FinishTicketModal({ isOpen, ticket, tickets, onConfirm, onCancel
               >
                 <CreditCard className="w-4 h-4" />
                 <span className="font-black text-xs uppercase tracking-wider">Tarjeta</span>
-              </button>
-
-              <button
-                onClick={() => setPaymentMethod('Transferencia')}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all col-span-2 ${
-                  paymentMethod === 'Transferencia' 
-                    ? 'bg-purple-50 border-purple-500 shadow-sm' 
-                    : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-200'
-                }`}
-              >
-                <Send className="w-4 h-4" />
-                <span className="font-black text-xs uppercase tracking-wider">Transferencia</span>
               </button>
             </div>
 

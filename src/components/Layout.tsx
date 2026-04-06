@@ -42,14 +42,15 @@ export function Layout({
     setLogoError(false);
   }, [settings?.logo_url]);
 
-  const menuTextColor = settings?.theme_menu_text || branding?.theme_menu_text || '#71717a'; // Neutral gray for unselected items
-  const menuHighlightColor = settings?.theme_menu_highlight || branding?.theme_menu_highlight || '#f97316'; // Emerald 500
-  const primaryButtonColor = settings?.theme_button_color || '#ea580c'; // Emerald 600 default
+  const menuTextColor = settings?.theme_sidebar_text || settings?.theme_menu_text || branding?.theme_menu_text || '#a1a1aa';
+  const menuHighlightColor = settings?.theme_sidebar_active_text || settings?.theme_menu_highlight || branding?.theme_menu_highlight || '#ffffff';
+  const sidebarBgColor = settings?.theme_sidebar_bg || '#18181b';
+  const sidebarActiveBg = settings?.theme_sidebar_active_bg || '#27272a';
+  const mainBgColor = settings?.theme_main_bg || '#f4f4f5';
+  const primaryButtonColor = settings?.theme_button_color || '#ea580c';
 
-  // Añadir opacidad de 10% (aprox 1A) a highlightColor si tiene formato hexadecimal
-  const highlightBg = menuHighlightColor.startsWith('#') && menuHighlightColor.length === 7 
-    ? `${menuHighlightColor}1A` 
-    : 'rgba(249, 115, 22, 0.1)';
+  const sidebarBorderColor = sidebarBgColor === '#18181b' ? 'border-zinc-800' : 'border-black/10';
+  const highlightBg = sidebarActiveBg;
 
   const navItems = [
     { id: 'dashboard', label: 'Tablero Kanban', icon: LayoutDashboard },
@@ -80,10 +81,11 @@ export function Layout({
 
   return (
     <div 
-      className="flex h-screen w-full bg-zinc-50 text-zinc-900 font-sans overflow-hidden"
+      className="flex h-screen w-full font-sans overflow-hidden transition-colors"
       style={{ 
         '--primary': primaryButtonColor,
-        '--primary-shadow': primaryShadow
+        '--primary-shadow': primaryShadow,
+        backgroundColor: mainBgColor
       } as React.CSSProperties}
     >
       {/* Sidebar Overlay (Mobile) */}
@@ -95,28 +97,42 @@ export function Layout({
       )}
 
       {/* Sidebar */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 w-72 bg-zinc-900 text-zinc-100 flex flex-col z-50 transition-transform duration-300 lg:relative lg:translate-x-0 lg:w-64 shrink-0",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full",
-        isMonitorMode && "hidden"
-      )}>
-        <div className="p-6 flex items-center justify-between border-b border-zinc-800">
+      <aside 
+        className={cn(
+            "fixed inset-y-0 left-0 w-72 flex flex-col z-50 transition-all duration-300 lg:relative lg:translate-x-0 lg:w-64 shrink-0 shadow-2xl lg:shadow-none",
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+            isMonitorMode && "hidden"
+        )}
+        style={{ backgroundColor: sidebarBgColor }}
+      >
+        <div className={cn("p-6 flex items-center justify-between border-b", sidebarBorderColor)}>
           <div className="flex items-center gap-3">
-            <div className="w-16 h-16 bg-zinc-800 rounded-xl flex items-center justify-center overflow-hidden border border-zinc-700">
+            <div 
+                className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden border"
+                style={{ backgroundColor: sidebarActiveBg, borderColor: 'rgba(255,255,255,0.1)' }}
+            >
               {settings?.logo_url && !logoError ? (
                 <img
                   src={settings.logo_url}
                   alt="Logo"
-                  className="w-full h-full object-contain"
+                   className="w-full h-full object-contain transition-transform"
+                   style={{
+                       transform: `scale(${settings.logo_scale || 1}) translate(${settings.logo_x_offset || 0}px, ${settings.logo_y_offset || 0}px)`
+                   }}
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <div className="w-16 h-16 bg-black rounded-xl flex items-center justify-center p-1 border border-zinc-700">
+                <div className="w-16 h-16 bg-black/20 rounded-xl flex items-center justify-center p-1">
                   <img src="/logo3.png" alt="Lubricentro Vespucio" className="w-14 h-14 object-contain" />
                 </div>
               )}
             </div>
-            <span className="font-bold text-lg tracking-tight leading-tight">{settings?.workshop_name || 'Lubricentro Vespucio'}</span>
+            <span 
+                className="font-bold text-lg tracking-tight leading-tight"
+                style={{ color: '#ffffff' }} // Keep white/zinc-100 for dark sidebar generally, but could use theme_menu_highlight
+            >
+                {settings?.workshop_name || 'Lubricentro Vespucio'}
+            </span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -150,7 +166,7 @@ export function Layout({
           })}
         </nav>
 
-        <div className="p-4 border-t border-zinc-800">
+        <div className={cn("p-4 border-t", sidebarBorderColor)}>
           <button
             onClick={() => handleTabChange('settings')}
             style={{
@@ -173,7 +189,10 @@ export function Layout({
             Cerrar Sesión
           </button>
         </div>
-        <div className="p-4 bg-zinc-800/30">
+        <div 
+            className="p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
+        >
           <button
             onClick={async () => {
               if (onRefresh) {
@@ -195,7 +214,10 @@ export function Layout({
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Header */}
         {!isMonitorMode && (
-        <header className="h-14 lg:h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-2 lg:px-8 shrink-0">
+        <header 
+            className="h-14 lg:h-16 border-b border-zinc-200 flex items-center justify-between px-2 lg:px-8 shrink-0"
+            style={{ backgroundColor: settings?.theme_header_bg || '#ffffff' }}
+        >
           <div className="flex items-center gap-3 flex-1">
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -204,28 +226,50 @@ export function Layout({
               <Menu className="w-6 h-6" />
             </button>
             {activeTab !== 'dashboard' ? (
-              <h1 className="text-base lg:text-xl font-bold tracking-tight text-zinc-800 truncate max-w-[150px] md:max-w-none ml-1">
+              <h1 
+                className="text-base lg:text-xl font-bold tracking-tight truncate max-w-[150px] md:max-w-none ml-1"
+                style={{ color: settings?.theme_header_text || '#1f2937' }}
+              >
                 {navItems.find(i => i.id === activeTab)?.label || 'Configuración'}
               </h1>
             ) : (
               <div className="flex flex-row items-center gap-2 flex-1 w-full overflow-hidden">
-                <h1 className="text-lg lg:text-xl font-bold tracking-tight text-zinc-900 whitespace-nowrap hidden sm:block">Flujo de Trabajo</h1>
+                <h1 
+                    className="text-lg lg:text-xl font-bold tracking-tight whitespace-nowrap hidden sm:block"
+                    style={{ color: settings?.theme_header_text || '#1f2937' }}
+                >
+                    Flujo de Trabajo
+                </h1>
                 <div className="relative flex-1 max-w-md w-full min-w-0">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                  <Search 
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5" 
+                    style={{ color: settings?.theme_header_text + '80' || '#a1a1aa' }}
+                  />
                   <input
                     type="text"
                     placeholder="Buscar..."
                     className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-zinc-400"
+                    style={{ 
+                        backgroundColor: settings?.theme_header_bg === '#ffffff' ? '#f4f4f5' : 'rgba(0,0,0,0.05)',
+                        color: settings?.theme_header_text || '#1f2937'
+                    }}
                     value={searchTerm}
                     onChange={e => setSearchTerm?.(e.target.value)}
                   />
                 </div>
-
+ 
                 <div className="relative flex-shrink-0">
-                  <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                  <Calendar 
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" 
+                    style={{ color: settings?.theme_header_text + '80' || '#a1a1aa' }}
+                  />
                   <input
                     type="date"
-                    className="pl-7 pr-3 py-1.5 text-[10px] sm:text-xs rounded-lg border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all bg-white text-zinc-900 font-bold"
+                    className="pl-7 pr-3 py-1.5 text-[10px] sm:text-xs rounded-lg border border-zinc-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all font-bold"
+                    style={{ 
+                        backgroundColor: settings?.theme_header_bg === '#ffffff' ? '#f4f4f5' : 'rgba(0,0,0,0.05)',
+                        color: settings?.theme_header_text || '#1f2937'
+                    }}
                     value={viewDate}
                     onChange={e => setViewDate?.(e.target.value)}
                   />

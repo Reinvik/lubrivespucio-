@@ -5,6 +5,7 @@ import { es } from 'date-fns/locale';
 import { Car, Clock, ArrowLeft, CheckCircle2, Wrench, Package, AlertCircle, MapPin, Camera, Image as ImageIcon, Calendar, Phone, RotateCw, History, Star, Send, MessageSquare, ClipboardList, X, ShieldCheck, Check } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { InspeccionDetalle, ChecklistIngreso, InspectionStatus } from '../types';
+import { VehicleHistoryView } from './VehicleHistoryView';
 
 interface CustomerPortalProps {
   ticket: Ticket | null;
@@ -174,14 +175,14 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
   };
 
   // Ordenar tickets por fecha de entrada descendente (más reciente arriba)
-  const sortedTickets = [...allTickets].sort((a, b) => {
+  const sortedTickets = Array.isArray(allTickets) ? [...allTickets].sort((a, b) => {
     const dateA = a.entry_date ? parseISO(a.entry_date).getTime() : 0;
     const dateB = b.entry_date ? parseISO(b.entry_date).getTime() : 0;
     return dateB - dateA;
-  });
+  }) : [];
 
-  // El ticket actual es el primero de la lista (el más reciente) o el pasado por prop
-  const displayTicket = sortedTickets[0] || ticket;
+  // El ticket actual es preferentemente el dictado por prop (que viene de App con logica de status)
+  const displayTicket = ticket || sortedTickets[0];
 
   if (!displayTicket) return null;
 
@@ -328,17 +329,30 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
-                <div className="flex items-center gap-2 mb-4 text-zinc-900 font-bold">
-                  <Wrench className="w-5 h-5 text-zinc-500" />
-                  Observaciones Técnicas
+              <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center gap-2 mb-4 text-zinc-900 font-bold">
+                    <Wrench className="w-5 h-5 text-zinc-500" />
+                    Observaciones Técnicas
+                  </div>
+                  <p className="text-sm text-zinc-600 mb-4 leading-relaxed">
+                    {displayTicket.notes || 'Sin observaciones adicionales.'}
+                  </p>
                 </div>
-                <p className="text-sm text-zinc-600 mb-4 leading-relaxed">
-                  {displayTicket.notes}
-                </p>
-                <div className="text-xs text-zinc-500 font-medium flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" />
-                  Apertura: {safeFormatDate(displayTicket.entry_date)}
+                <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-200/50">
+                  <div className="text-xs text-zinc-500 font-medium flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" />
+                    {safeFormatDateSimplified(displayTicket.entry_date)}
+                  </div>
+                  {(displayTicket.inspeccion || displayTicket.ingreso_checklist) && (
+                    <button 
+                      onClick={() => setShowInspectionReview(true)}
+                      className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center gap-1.5 active:scale-95"
+                    >
+                      <ClipboardList className="w-3.5 h-3.5" />
+                      VER INSPECCIÓN
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -348,7 +362,7 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
                   Repuestos y Materiales
                 </div>
                 <div className="flex-1">
-                  {displayTicket.spare_parts && displayTicket.spare_parts.length > 0 ? (
+                  {Array.isArray(displayTicket.spare_parts) && displayTicket.spare_parts.length > 0 ? (
                     <div className="space-y-3">
                       {displayTicket.spare_parts.map((part, idx) => (
                         <div key={idx} className="flex justify-between items-center group">
@@ -375,7 +389,7 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
                         </div>
                       </div>
                     </div>
-                  ) : displayTicket.parts_needed && displayTicket.parts_needed.length > 0 ? (
+                  ) : Array.isArray(displayTicket.parts_needed) && displayTicket.parts_needed.length > 0 ? (
                     <ul className="space-y-2">
                       {displayTicket.parts_needed.map((part, idx) => (
                         <li key={idx} className="text-sm text-zinc-600 flex items-center gap-2">
@@ -394,7 +408,7 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
             </div>
 
             {/* Nueva Sección: Servicios y Costos */}
-            {displayTicket.services && displayTicket.services.length > 0 && (
+            {Array.isArray(displayTicket.services) && displayTicket.services.length > 0 && (
               <div className="mt-6 bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
                 <div className="p-4 border-b border-zinc-50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -433,6 +447,36 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
               </div>
             )}
 
+            {/* Total General Cotización */}
+            {(() => {
+              const totalServices = Array.isArray(displayTicket.services) ? displayTicket.services.reduce((acc, curr) => acc + (curr.costo || 0) * (curr.cantidad || 1), 0) : 0;
+              const totalParts = Array.isArray(displayTicket.spare_parts) ? displayTicket.spare_parts.reduce((acc, curr) => acc + (curr.costo || 0) * (curr.cantidad || 1), 0) : 0;
+              let total = totalServices + totalParts;
+              
+              if (total === 0) {
+                total = displayTicket.cost || displayTicket.quotation_total || 0;
+              }
+
+              if (total === 0) return null;
+
+              return (
+                <div className="mt-6 bg-zinc-900 rounded-2xl shadow-xl overflow-hidden text-white flex flex-col sm:flex-row items-center justify-between p-6 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                    <div className="text-center sm:text-left">
+                      <h3 className="text-sm font-black text-zinc-300 uppercase tracking-widest">Total</h3>
+                      <p className="text-[10px] text-zinc-500 font-bold mt-0.5">Servicios + Repuestos (C/IVA)</p>
+                    </div>
+                  </div>
+                  <div className="text-3xl font-black text-emerald-400 bg-white/5 py-3 px-6 rounded-xl border border-white/10 shadow-inner">
+                    ${total.toLocaleString('es-CL')}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Evidencia Fotográfica con displayTicket */}
             {(() => {
               const inspectionPhotos: string[] = [];
@@ -446,7 +490,38 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
                 inspectionPhotos.push(...displayTicket.ingreso_checklist.objetosValor.fotos);
               }
 
-              const workPhotos = displayTicket.job_photos || [];
+              // Extraer timestamp de las fotos para filtrar las que son muy antiguas respecto a la creación del ticket
+              const ticketCreationTime = displayTicket.created_at ? new Date(displayTicket.created_at).getTime() : (displayTicket.entry_date ? new Date(displayTicket.entry_date).getTime() : 0);
+              
+              let workPhotos = displayTicket.job_photos || [];
+              
+              // Si el ticket es antiguo (probablemente de cuando la patente era el ID)
+              // y tiene muchas fotos, filtramos para que solo muestre las que tengan timestamp cercano al ticket
+              // Un heuristico es ver si el ticket está recién creado, no mostrar fotos antiguas
+              if (ticketCreationTime > 0) {
+                 workPhotos = workPhotos.filter(photo => {
+                    const match = photo.match(/_(\d{13})\./); // Buscar el timestamp en el formato de supabase _171... .jpg
+                    if (match) {
+                       const photoTime = parseInt(match[1], 10);
+                       // Solo mostrar fotos que fueron tomadas a lo sumo 2 dias antes del ticket o despues
+                       return photoTime >= ticketCreationTime - (2 * 24 * 60 * 60 * 1000);
+                    }
+                    return true; // Si no tiene timestamp, la mostramos igual (podria ocultarse pero es mas seguro no)
+                 });
+                 
+                 // Tambien si es un ticket nuevo que esta solo Ingresado/En espera, quizas las fotos son residuales
+                 if (['Ingreso', 'En espera'].includes(displayTicket.status)) {
+                    // Solo mantenemos horas de hoy/recientes para evitar residuales de trabajos anteriores
+                    workPhotos = workPhotos.filter(photo => {
+                      const match = photo.match(/_(\d{13})\./);
+                      if (match) {
+                         const photoTime = parseInt(match[1], 10);
+                         return photoTime >= Date.now() - (12 * 60 * 60 * 1000); // Solo ultimas 12 hrs
+                      }
+                      return false; // Si esta en espera, es arriesgado mostrar "fotos de trabajo" viejas
+                    });
+                 }
+              }
               
               if (inspectionPhotos.length === 0 && workPhotos.length === 0) return null;
 
@@ -681,83 +756,17 @@ export function CustomerPortal({ ticket, allTickets = [], reminder, settings, on
           );
         })()}
         {sortedTickets.length > 1 && (
-          <div className="mt-12 space-y-8">
-            <h3 className="text-xl font-black text-zinc-900 uppercase tracking-widest flex items-center gap-3 px-2">
-              <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center">
-                <History className="w-4 h-4 text-white" />
-              </div>
-              Historial de Servicios Anteriores
-            </h3>
-            
-            <div className="space-y-6">
-              {sortedTickets.slice(1).map((histTicket, idx) => (
-                <div key={idx} className="bg-white rounded-3xl border border-zinc-100 shadow-sm overflow-hidden border-l-4" style={{ borderLeftColor: primaryColor }}>
-                  <div className="p-6">
-                    <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-zinc-50 rounded-xl flex items-center justify-center border border-zinc-100">
-                          <ImageIcon className="w-5 h-5 text-zinc-400" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-zinc-900 leading-tight">Servicio del {safeFormatDate(histTicket.entry_date)}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-black uppercase bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-md tracking-wider">
-                              {histTicket.status}
-                            </span>
-                            {histTicket.mileage && (
-                              <span className="text-[10px] font-black uppercase text-zinc-400">
-                                {histTicket.mileage.toLocaleString('es-CL')} KM
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Inversión</p>
-                        <p className="text-xl font-black text-zinc-900">
-                           ${(
-                             (histTicket.services?.reduce((acc, s) => acc + (s.costo || 0) * (s.cantidad || 1), 0) || 0) + 
-                             (histTicket.spare_parts?.reduce((acc, s) => acc + (s.costo || 0) * (s.cantidad || 1), 0) || 0)
-                           ).toLocaleString('es-CL')}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Notas del Historial */}
-                      <div className="bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100">
-                         <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-2">Observaciones</p>
-                         <p className="text-xs text-zinc-600 leading-relaxed italic">
-                           {histTicket.notes || 'Sin observaciones registradas.'}
-                         </p>
-                      </div>
-
-                      {/* Servicios del Historial */}
-                      <div className="bg-zinc-50/50 p-4 rounded-2xl border border-zinc-100">
-                         <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-2">Servicios Realizados</p>
-                         {histTicket.services && histTicket.services.length > 0 ? (
-                           <ul className="space-y-1.5">
-                             {histTicket.services.map((s, si) => (
-                               <li key={si} className="text-xs text-zinc-600 flex justify-between">
-                                 <span className="font-medium">
-                                   • {s.descripcion}
-                                   {s.cantidad && s.cantidad > 1 && (
-                                     <span className="ml-1 text-[10px] font-bold text-zinc-400">x{s.cantidad}</span>
-                                   )}
-                                 </span>
-                                 <span className="text-zinc-400 font-bold">${((s.costo || 0) * (s.cantidad || 1)).toLocaleString('es-CL')}</span>
-                               </li>
-                             ))}
-                           </ul>
-                         ) : (
-                           <p className="text-[10px] text-zinc-400 italic">No hay servicios detallados.</p>
-                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="mt-12">
+             <div className="bg-white rounded-3xl p-2 sm:p-4 shadow-sm border border-zinc-100/50">
+               <VehicleHistoryView 
+                 ticket={displayTicket}
+                 allTickets={sortedTickets}
+                 patente={displayTicket.patente}
+                 settings={settings}
+                 embedded={true}
+                 hideCurrentStatus={true}
+               />
+             </div>
           </div>
         )}
       </div>

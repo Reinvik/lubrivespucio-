@@ -18,7 +18,7 @@ interface LandingEditorProps {
 }
 
 
-type EditorTab = 'hero' | 'services' | 'location' | 'colors';
+type EditorTab = 'hero' | 'services' | 'location' | 'colores';
 
 const DEFAULTS: LandingPageConfig = {
   hero_badge: 'Calidad Certificada en Vespucio',
@@ -26,7 +26,7 @@ const DEFAULTS: LandingPageConfig = {
   hero_subtitle: 'Especialistas en lubricación automotriz técnica. Tecnología de diagnóstico avanzada y los mejores aceites para prolongar la vida útil de tu vehículo.',
   hero_cta_text: 'Agendar Mi Filtro',
   hero_phone: '+56 9 9069 9021',
-  hero_image_url: 'https://images.unsplash.com/photo-1486006396193-47101fd90ee7?q=80&w=1200',
+  hero_image_url: 'https://images.unsplash.com/photo-1632733711679-5292d667cdeb?q=80&w=1200',
   hero_stat1_value: '4.9/5',
   hero_stat1_label: 'Ranking Google',
   hero_stat2_value: '15min',
@@ -50,6 +50,7 @@ const DEFAULTS: LandingPageConfig = {
   theme_secondary_color: '#3b82f6',
   theme_accent_color: '#f97316',
   theme_background_color: '#070b14',
+  theme_text_color: '#ffffff',
   theme_border_radius: '3xl',
 };
 
@@ -148,6 +149,87 @@ const ImageUploader = ({
   );
 };
 
+// Multi-image uploader for gallery
+const GalleryUploader = ({
+  images = [], onUpdate, label
+}: { images: string[]; onUpdate: (urls: string[]) => void; label: string; }) => {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = async (files: FileList) => {
+    setUploading(true);
+    try {
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const ext = file.name.split('.').pop();
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { data, error } = await supabase.storage
+          .from('landing-images')
+          .upload(filename, file, { upsert: true, contentType: file.type });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('landing-images')
+          .getPublicUrl(data.path);
+        newUrls.push(publicUrl);
+      }
+      onUpdate([...images, ...newUrls]);
+    } catch (err: any) {
+      alert('Error al subir imágenes: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (idx: number) => {
+    const next = [...images];
+    next.splice(idx, 1);
+    onUpdate(next);
+  };
+
+  return (
+    <div className="space-y-4">
+      <label className="text-xs font-black uppercase tracking-widest text-zinc-400">{label}</label>
+      
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {images.map((url, idx) => (
+          <div key={idx} className="relative rounded-xl overflow-hidden border border-zinc-800 aspect-square bg-zinc-900 group">
+            <img src={url} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+            <button
+              onClick={() => removeImage(idx)}
+              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-red-500 transition-colors opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="aspect-square flex flex-col items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 border-2 border-dashed border-zinc-800 hover:border-orange-500/50 text-zinc-500 hover:text-orange-500 rounded-xl transition-all disabled:opacity-50"
+        >
+          {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+          <span className="text-[10px] font-black uppercase tracking-widest px-2 text-center">
+            {uploading ? 'Subiendo...' : 'Añadir Fotos'}
+          </span>
+        </button>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        className="hidden"
+        onChange={e => { if (e.target.files) handleFiles(e.target.files); }}
+      />
+    </div>
+  );
+};
+
 // ─── Live Preview Panel ──────────────────────────────────────────────────────
 const LivePreview = ({ cfg }: { cfg: LandingPageConfig }) => {
   const c = { ...DEFAULTS, ...cfg };
@@ -231,6 +313,21 @@ const LivePreview = ({ cfg }: { cfg: LandingPageConfig }) => {
             </div>
           </div>
         </div>
+        {c.location_image_url && (
+          <div className="mt-6 aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-xl">
+            <img src={c.location_image_url} alt="location" className="w-full h-full object-cover" />
+          </div>
+        )}
+
+        {c.gallery_images && c.gallery_images.length > 0 && (
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {c.gallery_images.slice(0, 3).map((img, i) => (
+              <div key={i} className="aspect-square rounded-xl overflow-hidden border border-white/10">
+                <img src={img} alt={`gallery-${i}`} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -257,7 +354,7 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
     }
   }, [settings?.id]);
 
-  const setConfig = (key: keyof LandingPageConfig, value: string) => {
+  const setConfig = (key: keyof LandingPageConfig, value: string | string[]) => {
     setSaved(false);
     setCfg(prev => {
       const next = { ...prev, [key]: value };
@@ -302,8 +399,8 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
       const tabKeys: Record<EditorTab, (keyof LandingPageConfig)[]> = {
         hero: ['hero_badge', 'hero_title', 'hero_subtitle', 'hero_cta_text', 'hero_phone', 'hero_image_url', 'hero_stat1_value', 'hero_stat1_label', 'hero_stat2_value', 'hero_stat2_label', 'hero_trust_text'],
         services: ['services_section_tag', 'services_section_title', 'services_section_body'],
-        location: ['location_tag', 'location_title', 'location_body', 'location_address', 'location_hours_weekday', 'location_hours_saturday', 'location_phone', 'location_maps_url', 'footer_copyright'],
-        colors: ['theme_primary_color', 'theme_secondary_color', 'theme_accent_color', 'theme_background_color', 'theme_border_radius'],
+        location: ['location_tag', 'location_title', 'location_body', 'location_address', 'location_hours_weekday', 'location_hours_saturday', 'location_phone', 'location_maps_url', 'footer_copyright', 'gallery_images'],
+        colores: ['theme_primary_color', 'theme_secondary_color', 'theme_accent_color', 'theme_background_color', 'theme_text_color', 'theme_border_radius'],
       };
       const updates: Partial<LandingPageConfig> = {};
       tabKeys[activeTab].forEach(k => { (updates as any)[k] = (DEFAULTS as any)[k]; });
@@ -317,8 +414,8 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
   const tabs: { id: EditorTab; label: string; icon: React.ElementType }[] = [
     { id: 'hero', label: 'Hero', icon: Layout },
     { id: 'services', label: 'Servicios', icon: Star },
-    { id: 'location', label: 'Contacto', icon: MapPin },
-    { id: 'colors', label: 'Colores', icon: Palette },
+    { id: 'location', label: 'Ubicación', icon: MapPin },
+    { id: 'colores', label: 'Colores', icon: Palette },
   ];
 
   return (
@@ -551,7 +648,68 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
               </>
             )}
 
-            {activeTab === 'colors' && (
+            {activeTab === 'location' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Etiqueta Sección">
+                    <Input value={merged.location_tag!} onChange={v => setConfig('location_tag', v)} />
+                  </Field>
+                  <Field label="Título Sección">
+                    <Input value={merged.location_title!} onChange={v => setConfig('location_title', v)} />
+                  </Field>
+                </div>
+
+                <Field label="Descripción de ubicación">
+                  <Input value={merged.location_body!} onChange={v => setConfig('location_body', v)} multiline />
+                </Field>
+
+                <Field label="Dirección Física">
+                  <Input value={merged.location_address!} onChange={v => setConfig('location_address', v)} />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Horario Lunes-Viernes">
+                    <Input value={merged.location_hours_weekday!} onChange={v => setConfig('location_hours_weekday', v)} />
+                  </Field>
+                  <Field label="Horario Sábado">
+                    <Input value={merged.location_hours_saturday!} onChange={v => setConfig('location_hours_saturday', v)} />
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Teléfono / Contacto">
+                    <Input value={merged.location_phone!} onChange={v => setConfig('location_phone', v)} />
+                  </Field>
+                  <Field label="URL Google Maps (Compartir)">
+                    <Input value={merged.location_maps_url!} onChange={v => setConfig('location_maps_url', v)} />
+                  </Field>
+                </div>
+
+                <Field label="Copyright (Footer)">
+                  <Input value={merged.footer_copyright!} onChange={v => setConfig('footer_copyright', v)} />
+                </Field>
+
+                <div className="pt-6 border-t border-zinc-800 space-y-8">
+                  <ImageUploader
+                    label="Foto Principal Portada"
+                    currentUrl={merged.location_image_url || ''}
+                    onUploaded={url => setConfig('location_image_url', url)}
+                  />
+                  
+                  <GalleryUploader
+                    label="Galería de Fotos del Taller"
+                    images={merged.gallery_images || []}
+                    onUpdate={urls => setConfig('gallery_images', urls)}
+                  />
+
+                  <p className="mt-2 text-[10px] text-zinc-500">
+                    Sube fotos reales del taller, equipo y trabajos realizados para generar confianza.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'colores' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-2 gap-6">
                   <Field label="Color Primario" hint="Botones, iconos y resaltados">
@@ -571,6 +729,25 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
                     </div>
                   </Field>
 
+                  <Field label="Color Secundario" hint="Degradados y hover">
+                    <div className="flex gap-3 items-center">
+                      <input 
+                        type="color" 
+                        value={merged.theme_secondary_color} 
+                        onChange={e => setConfig('theme_secondary_color', e.target.value)}
+                        className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 cursor-pointer"
+                      />
+                      <input 
+                        type="text" 
+                        value={merged.theme_secondary_color} 
+                        onChange={e => setConfig('theme_secondary_color', e.target.value)}
+                        className="flex-1 px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-sm font-mono"
+                      />
+                    </div>
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
                   <Field label="Color de Acento" hint="Badge y elementos secundarios">
                     <div className="flex gap-3 items-center">
                       <input 
@@ -583,6 +760,23 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
                         type="text" 
                         value={merged.theme_accent_color} 
                         onChange={e => setConfig('theme_accent_color', e.target.value)}
+                        className="flex-1 px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-sm font-mono"
+                      />
+                    </div>
+                  </Field>
+
+                  <Field label="Color de Texto" hint="Títulos y párrafos principales">
+                    <div className="flex gap-3 items-center">
+                      <input 
+                        type="color" 
+                        value={merged.theme_text_color} 
+                        onChange={e => setConfig('theme_text_color', e.target.value)}
+                        className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 cursor-pointer"
+                      />
+                      <input 
+                        type="text" 
+                        value={merged.theme_text_color} 
+                        onChange={e => setConfig('theme_text_color', e.target.value)}
                         className="flex-1 px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-sm font-mono"
                       />
                     </div>

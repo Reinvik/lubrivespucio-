@@ -302,6 +302,42 @@ const AdminLoginModal = ({
   );
 };
 
+const PhotoGallery = ({ images, lp }: { images: string[]; lp: any }) => {
+  if (!images || images.length === 0) return null;
+
+  return (
+    <div className="mt-20">
+      <div className="flex items-center gap-4 mb-10 overflow-hidden">
+        <div className="h-px bg-white/10 flex-1" />
+        <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 whitespace-nowrap">Nuestras Instalaciones</h4>
+        <div className="h-px bg-white/10 flex-1" />
+      </div>
+      
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-hidden">
+        {images.map((url, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: idx * 0.1 }}
+            className="group relative aspect-square rounded-[32px] overflow-hidden border border-white/5 bg-slate-900"
+          >
+            <img 
+              src={url} 
+              alt={`Gallery ${idx}`} 
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            
+            <div className="absolute inset-0 border-2 border-brand-primary opacity-0 group-hover:opacity-10 transition-opacity rounded-[32px] pointer-events-none" />
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const LandingPage = ({ 
   onPortalAccess, 
   onAdminAccess, 
@@ -327,7 +363,7 @@ const LandingPage = ({
     hero_subtitle: 'Especialistas en lubricación automotriz técnica. Tecnología de diagnóstico avanzada y los mejores aceites para prolongar la vida útil de tu vehículo.',
     hero_cta_text: 'Agendar Mi Filtro',
     hero_phone: '+56 9 9069 9021',
-    hero_image_url: 'https://images.unsplash.com/photo-1486006396193-47101fd90ee7?q=80&w=1200',
+    hero_image_url: 'https://images.unsplash.com/photo-1632733711679-5292d667cdeb?q=80&w=1200',
     hero_stat1_value: '4.9/5',
     hero_stat1_label: 'Ranking Google',
     hero_stat2_value: '15min',
@@ -353,6 +389,11 @@ const LandingPage = ({
     theme_background_color: '#070b14',
     theme_border_radius: '3xl',
     ...((branding?.landing_config) || {}),
+    // Extra fallback overrides using top-level settings fields for immediate sync
+    ...(branding?.logo_url && !branding?.landing_config?.header_logo_url ? { header_logo_url: branding.logo_url } : {}),
+    ...(branding?.workshop_name && !branding?.landing_config?.hero_title ? { hero_title: branding.workshop_name.toUpperCase() } : {}),
+    ...(branding?.phone && !branding?.landing_config?.hero_phone ? { hero_phone: branding.phone, location_phone: branding.phone } : {}),
+    ...(branding?.address && !branding?.landing_config?.location_address ? { location_address: branding.address } : {}),
   };
 
 
@@ -531,7 +572,7 @@ const LandingPage = ({
 
           <div className="hidden md:flex items-center gap-8">
             <a href="#servicios" className="text-sm font-bold tracking-wide uppercase text-slate-400 hover:text-brand-primary transition-colors">Servicios</a>
-            <a href="#ubicacion" className="text-sm font-bold tracking-wide uppercase text-slate-400 hover:text-brand-primary transition-colors">Ubicación</a>
+            <a href="#contacto" className="text-sm font-bold tracking-wide uppercase text-slate-400 hover:text-brand-primary transition-colors">Contacto</a>
             <button 
               onClick={() => setIsAdminLoginOpen(true)}
               className="text-white font-black text-xs uppercase tracking-widest py-3 px-6 rounded-full transition-all active:scale-95 shadow-lg"
@@ -560,7 +601,7 @@ const LandingPage = ({
             >
               <div className="px-6 py-8 flex flex-col gap-6">
                 <a href="#servicios" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Servicios</a>
-                <a href="#ubicacion" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Ubicación</a>
+                <a href="#contacto" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Contacto</a>
                 <button 
                   onClick={() => {
                     setIsMenuOpen(false);
@@ -597,6 +638,7 @@ const LandingPage = ({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, delay: 0.2 }}
               className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.95]"
+              style={{ color: lp.theme_text_color }}
             >
               {lp.hero_title?.toUpperCase().includes('MOTOR') ? (
                 <>
@@ -806,14 +848,14 @@ const LandingPage = ({
         lp={lp}
       />
 
-      {/* Location/Info Section */}
-      <section id="ubicacion" className="py-32 bg-white/5 relative z-10 border-y border-white/5">
+      {/* Contact Section */}
+      <section id="contacto" className="py-32 bg-white/5 relative z-10 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div className="space-y-10">
               <div>
                 <h2 className="text-brand-primary text-xs font-black uppercase tracking-[0.4em] mb-4">{lp.location_tag}</h2>
-                <h3 className="text-5xl font-black mb-6">{lp.location_title}</h3>
+                <h3 className="text-5xl font-black mb-6" style={{ color: lp.theme_text_color }}>{lp.location_title}</h3>
                 <p className="text-slate-400 text-lg font-medium leading-relaxed">
                   {lp.location_body}
                 </p>
@@ -888,6 +930,9 @@ const LandingPage = ({
               </a>
             </motion.div>
           </div>
+
+          {/* Photo Gallery Integration */}
+          <PhotoGallery images={lp.gallery_images} lp={lp} />
         </div>
       </section>
 

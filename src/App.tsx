@@ -94,9 +94,22 @@ export default function App() {
     searchTicketsHistory,
     fetchCompanies, addIntelligentReminder, fetchActiveReminder, fetchPublicSettingsBySlug, fetchOccupiedReminders, fetchPublicVehicleInfo,
     addReminder, deleteReminder, updateReminder, refreshData, uploadTicketPhoto,
-    salaVentas, addSalaVenta, fetchSalaVentas,
+    salaVentas, addSalaVenta, fetchSalaVentas, deleteSalaVenta,
     saveCustomerFeedback, garantias, addGarantia, updateGarantia, deleteGarantia
   } = useGarageStore(profile?.company_id);
+
+  // Dynamic Favicon Update
+  useEffect(() => {
+    if (settings?.favicon_url) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = settings.favicon_url;
+    }
+  }, [settings?.favicon_url]);
 
   // Monitor Mode Auto-refresh
   useEffect(() => {
@@ -112,7 +125,7 @@ export default function App() {
   useEffect(() => {
     // Detect public branding from URL slug (?t=slug)
     const params = new URLSearchParams(window.location.search);
-    const slug = params.get('t') || 'lubri-vespucio';
+    const slug = params.get('t') || 'lubrivespucio';
     if (slug) {
       fetchPublicSettingsBySlug(slug).then(data => {
         setPublicBranding(data || {
@@ -130,6 +143,14 @@ export default function App() {
       });
     }
   }, [fetchPublicSettingsBySlug]);
+
+  // Sync logged-in settings explicitly with public branding
+  // so changes hit the LandingPage directly without reload
+  useEffect(() => {
+    if (settings && Object.keys(settings).length > 0) {
+      setPublicBranding(settings);
+    }
+  }, [settings]);
 
   // Handle direct links with patente (?p=BBBB00)
   useEffect(() => {
@@ -371,6 +392,8 @@ export default function App() {
           tickets={tickets}
           onAddSalaVenta={addSalaVenta}
           fetchSalaVentas={fetchSalaVentas}
+          onDeleteSalaVenta={deleteSalaVenta}
+          onDeleteTicket={deleteTicket}
           salaVentas={salaVentas}
           settings={settings}
         />

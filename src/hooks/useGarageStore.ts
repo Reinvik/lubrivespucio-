@@ -1238,6 +1238,40 @@ export function useGarageStore(companyId?: string) {
     fetchPublicVehicleInfo,
     fetchSalaVentas,
     addSalaVenta,
+    deleteSalaVenta: async (id: string) => {
+      try {
+        // 1. Obtener la venta para saber qué productos devolver al stock
+        const { data: sale } = await supabaseGarage.from('garage_sala_ventas')
+          .select('items')
+          .eq('id', id)
+          .eq('company_id', companyId)
+          .single();
+
+        if (sale && Array.isArray(sale.items)) {
+          // 2. Devolver stock
+          for (const item of sale.items as SalaVentaItem[]) {
+            const part = parts.find(p => p.id === item.part_id);
+            if (part) {
+              await supabaseGarage.from('garage_parts')
+                .update({ stock: part.stock + item.cantidad })
+                .eq('id', item.part_id);
+            }
+          }
+        }
+
+        // 3. Eliminar la venta
+        const { error } = await supabaseGarage.from('garage_sala_ventas')
+          .delete()
+          .eq('id', id)
+          .eq('company_id', companyId);
+
+        if (error) throw error;
+        await Promise.all([fetchSalaVentas(), fetchData(true)]);
+      } catch (error) {
+        console.error('Error deleting sala venta:', error);
+        throw error;
+      }
+    },
     saveCustomerFeedback,
     // ─── Garantías ──────────────────────────────────────────────────
     garantias,

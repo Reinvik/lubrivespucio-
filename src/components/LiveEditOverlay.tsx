@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Save, Loader2, CheckCircle2, X, ChevronLeft, ChevronRight,
-  Layout, Star, MapPin, RefreshCw, Upload, Monitor
+  Layout, Star, MapPin, RefreshCw, Upload, Monitor, Palette
 } from 'lucide-react';
 import { GarageSettings, LandingPageConfig, LubriService } from '../types';
 import { supabase } from '../lib/supabase';
@@ -44,9 +44,15 @@ const DEFAULTS: LandingPageConfig = {
   location_maps_url: 'https://www.google.com/maps/search/?api=1&query=Av.+Americo+Vespucio+310,+Maipu',
   footer_copyright: '© 2026 Lubricentro Vespucio',
   header_logo_url: '',
+  theme_primary_color: '#f97316',
+  theme_secondary_color: '#3b82f6',
+  theme_accent_color: '#f97316',
+  theme_background_color: '#070b14',
+  theme_border_radius: '3xl',
+  gallery_images: [],
 };
 
-type EditorTab = 'hero' | 'services' | 'location';
+type EditorTab = 'hero' | 'services' | 'location' | 'colores';
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
@@ -109,6 +115,83 @@ const ImageUploader = ({ currentUrl, onUploaded, label }: { currentUrl: string; 
   );
 };
 
+const GalleryUploader = ({
+  images = [], onUpdate, label
+}: { images: string[]; onUpdate: (urls: string[]) => void; label: string; }) => {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = async (files: FileList) => {
+    setUploading(true);
+    try {
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const ext = file.name.split('.').pop();
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { data, error } = await supabase.storage
+          .from('landing-images')
+          .upload(filename, file, { upsert: true, contentType: file.type });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('landing-images')
+          .getPublicUrl(data.path);
+        newUrls.push(publicUrl);
+      }
+      onUpdate([...images, ...newUrls]);
+    } catch (err: any) {
+      alert('Error al subir imágenes: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (idx: number) => {
+    const next = [...images];
+    next.splice(idx, 1);
+    onUpdate(next);
+  };
+
+  return (
+    <div className="space-y-4">
+      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{label}</label>
+      <div className="grid grid-cols-2 gap-2">
+        {images.map((url, idx) => (
+          <div key={idx} className="relative rounded-lg overflow-hidden border border-zinc-800 aspect-square bg-zinc-900 group">
+            <img src={url} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+            <button
+              onClick={() => removeImage(idx)}
+              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-red-500 transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="aspect-square flex flex-col items-center justify-center gap-1 bg-zinc-900 hover:bg-zinc-800 border border-dashed border-zinc-700 hover:border-orange-500/50 text-zinc-500 hover:text-orange-500 rounded-lg transition-all disabled:opacity-50"
+        >
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          <span className="text-[9px] font-black uppercase tracking-widest px-2 text-center">
+            {uploading ? '...' : 'Añadir'}
+          </span>
+        </button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        className="hidden"
+        onChange={e => { if (e.target.files) handleFiles(e.target.files); }}
+      />
+    </div>
+  );
+};
+
 // ── Main Overlay ─────────────────────────────────────────────────────────────
 
 export function LiveEditOverlay({ cfg, setCfg, onUpdate, settings, onClose }: LiveEditOverlayProps) {
@@ -124,7 +207,7 @@ export function LiveEditOverlay({ cfg, setCfg, onUpdate, settings, onClose }: Li
   );
 
   // Sync live preview with local changes
-  const setField = (key: keyof LandingPageConfig, value: string) => {
+  const setField = (key: keyof LandingPageConfig, value: any) => {
     setSaved(false);
     setLocalCfg(prev => ({ ...prev, [key]: value }));
   };
@@ -160,6 +243,7 @@ export function LiveEditOverlay({ cfg, setCfg, onUpdate, settings, onClose }: Li
     { id: 'hero', label: 'Hero', icon: Layout },
     { id: 'services', label: 'Servicios', icon: Star },
     { id: 'location', label: 'Contacto', icon: MapPin },
+    { id: 'colores', label: 'Estilo', icon: Palette },
   ];
 
   return (
@@ -431,12 +515,68 @@ export function LiveEditOverlay({ cfg, setCfg, onUpdate, settings, onClose }: Li
                     <Input value={merged.footer_copyright!} onChange={v => setField('footer_copyright', v)} />
                   </Field>
                   <div className="pt-4 border-t border-zinc-800 mt-2">
+                    <GalleryUploader
+                      label="Galería de Fotos"
+                      images={merged.gallery_images || []}
+                      onUpdate={urls => setField('gallery_images', urls)}
+                    />
+                  </div>
+                  <div className="pt-4 border-t border-zinc-800 mt-2">
                     <ImageUploader
                       label="Imagen Ubicación"
                       currentUrl={merged.location_image_url || ''}
                       onUploaded={url => setField('location_image_url', url)}
                     />
                   </div>
+                </>
+              )}
+
+              {activeTab === 'colores' && (
+                <>
+                  <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl mb-4">
+                    <p className="text-[10px] text-orange-200 font-medium leading-relaxed leading-snug">
+                      Configura la identidad visual de tu landing page. Los cambios se reflejan al instante.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Color Primario">
+                      <div className="flex gap-2">
+                        <input type="color" value={merged.theme_primary_color} onChange={e => setField('theme_primary_color', e.target.value)} className="w-8 h-8 rounded border border-zinc-700 bg-transparent" />
+                        <Input value={merged.theme_primary_color!} onChange={v => setField('theme_primary_color', v)} />
+                      </div>
+                    </Field>
+                    <Field label="Color Secundario">
+                       <div className="flex gap-2">
+                        <input type="color" value={merged.theme_secondary_color} onChange={e => setField('theme_secondary_color', e.target.value)} className="w-8 h-8 rounded border border-zinc-700 bg-transparent" />
+                        <Input value={merged.theme_secondary_color!} onChange={v => setField('theme_secondary_color', v)} />
+                      </div>
+                    </Field>
+                  </div>
+
+                  <Field label="Color de Fondo">
+                    <div className="flex gap-2">
+                      <input type="color" value={merged.theme_background_color} onChange={e => setField('theme_background_color', e.target.value)} className="w-8 h-8 rounded border border-zinc-700 bg-transparent" />
+                      <Input value={merged.theme_background_color!} onChange={v => setField('theme_background_color', v)} />
+                    </div>
+                  </Field>
+
+                  <Field label="Border Radius">
+                    <select 
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white outline-none"
+                      value={merged.theme_border_radius}
+                      onChange={e => setField('theme_border_radius', e.target.value)}
+                    >
+                      <option value="none">Recto</option>
+                      <option value="sm">Pequeño</option>
+                      <option value="md">Medio</option>
+                      <option value="lg">Grande</option>
+                      <option value="xl">Extra Grande</option>
+                      <option value="2xl">2XL</option>
+                      <option value="3xl">3XL (Default)</option>
+                      <option value="full">Redondo</option>
+                    </select>
+                  </Field>
                 </>
               )}
             </div>

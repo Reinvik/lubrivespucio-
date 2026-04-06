@@ -12,9 +12,10 @@ interface VehicleHistoryViewProps {
   settings?: any;
   onClose?: () => void;
   embedded?: boolean;
+  hideCurrentStatus?: boolean;
 }
 
-export function VehicleHistoryView({ ticket, patente: patenteProp, allTickets = [], settings, onClose, embedded }: VehicleHistoryViewProps) {
+export function VehicleHistoryView({ ticket, patente: patenteProp, allTickets = [], settings, onClose, embedded, hideCurrentStatus }: VehicleHistoryViewProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   
   const effectivePatente = (patenteProp || ticket?.patente || ticket?.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -68,9 +69,10 @@ export function VehicleHistoryView({ ticket, patente: patenteProp, allTickets = 
   }, []);
 
   const visitsFromTickets = historicalTickets
+    .filter(t => t.id !== ticket?.id) // Exclude current ticket from history list
     .map(t => ({
       date: t.close_date || t.entry_date || t.created_at,
-      notes: t.notes || 'Sin notas',
+      notes: (t.notes && t.notes !== '0') ? t.notes : 'Sin notas',
       parts: [
         ...(t.services?.map(s => s.descripcion) || []),
         ...(t.spare_parts?.map(p => p.descripcion) || [])
@@ -166,7 +168,7 @@ export function VehicleHistoryView({ ticket, patente: patenteProp, allTickets = 
         )}
 
         {/* Servicio Actual (Solo si hay un ticket activo) */}
-        {refTicket && refTicket.status !== 'Finalizado' && refTicket.status !== 'Entregado' && (
+        {!hideCurrentStatus && refTicket && refTicket.status !== 'Finalizado' && refTicket.status !== 'Entregado' && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-500 mb-2">
             <div className="flex items-center gap-2 mb-1.5 ml-1">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -262,7 +264,7 @@ export function VehicleHistoryView({ ticket, patente: patenteProp, allTickets = 
                              ))}
                           </div>
                        )}
-                       {visit.notes && visit.notes !== 'Sin notas' && (
+                       {visit.notes && visit.notes !== 'Sin notas' && visit.notes !== '0' && (
                           <div className="relative group/notes">
                             <p className="text-[11px] text-zinc-600 leading-snug whitespace-pre-wrap italic">
                                {visit.notes}
