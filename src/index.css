@@ -54,6 +54,10 @@
   --input: #1E293B;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 @layer base {
   * {
     border-color: var(--border);
@@ -115,5 +119,13 @@
   .dark .glass-card {
     background-color: rgba(15, 23, 42, 0.8);
     border-color: rgba(30, 41, 59, 0.5);
+  }
+
+  .rounded-brand {
+    border-radius: 1.25rem;
+  }
+
+  .rounded-brand-lg {
+    border-radius: 2rem;
   }
 }

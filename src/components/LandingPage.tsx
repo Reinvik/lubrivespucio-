@@ -543,26 +543,33 @@ const LandingPage = ({
       {/* Premium Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         {/* Mesh Gradients */}
+        {/* Anim Blobs - Optimized for touch */}
         <motion.div 
-          animate={!isTouch ? { 
+          animate={isTouch ? {
+            x: [0, 50, 0],
+            y: [0, -30, 0]
+          } : { 
             scale: [1, 1.2, 1],
             rotate: [0, 90, 0],
             x: [0, 100, 0],
             y: [0, -50, 0]
-          } : {}}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] blur-[100px] md:blur-[150px] rounded-full mix-blend-screen" 
+          }}
+          transition={{ duration: isTouch ? 15 : 20, repeat: Infinity, ease: "linear" }}
+          className={`absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full ${isTouch ? 'blur-[60px] opacity-20' : 'blur-[100px] md:blur-[150px] mix-blend-screen'}`} 
           style={{ backgroundColor: `${lp.theme_primary_color}33` }}
         />
         <motion.div 
-          animate={!isTouch ? { 
+          animate={isTouch ? {
+            x: [0, -50, 0],
+            y: [0, 30, 0]
+          } : { 
             scale: [1.2, 1, 1.2],
             rotate: [0, -90, 0],
             x: [0, -100, 0],
             y: [0, 50, 0]
-          } : {}}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] blur-[100px] md:blur-[150px] rounded-full mix-blend-screen" 
+          }}
+          transition={{ duration: isTouch ? 18 : 25, repeat: Infinity, ease: "linear" }}
+          className={`absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full ${isTouch ? 'blur-[60px] opacity-10' : 'blur-[100px] md:blur-[150px] mix-blend-screen'}`} 
           style={{ backgroundColor: `${lp.theme_secondary_color}1a` }}
         />
         
