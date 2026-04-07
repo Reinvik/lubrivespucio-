@@ -66,7 +66,7 @@ export function useGarageStore(companyId?: string) {
       ] = await Promise.all([
         fetchAll('garage_tickets', 'entry_date', false),
         supabaseGarage.from('garage_mechanics').select('*').eq('company_id', companyId).order('name', { ascending: true }).then(r => r.data),
-        supabase.from('profiles').select('id, full_name').eq('company_id', companyId).then(r => r.data),
+        supabase.from('profiles').select('id, full_name, email').eq('company_id', companyId).then(r => r.data),
         fetchAll('garage_parts', 'name', true),
         fetchAll('garage_customers', 'name', true),
         supabaseGarage.from('garage_settings').select('*').eq('company_id', companyId).maybeSingle(),
@@ -79,7 +79,11 @@ export function useGarageStore(companyId?: string) {
       const uniqueMechanicsMap = new Map<string, Mechanic>();
       (mechanicsData || []).forEach(m => uniqueMechanicsMap.set(m.id, { ...m, is_manual: true }));
       (profilesData || []).forEach((p: any) => {
-        if (!uniqueMechanicsMap.has(p.id)) {
+        // Exclude accounts that are not mechanics (admins, superadmins, company account)
+        const isExclusionEmail = p.email?.toLowerCase().includes('ariel.mellag') || p.email?.toLowerCase().includes('lubrivespucio');
+        const isExclusionName = p.full_name?.toLowerCase().includes('lubrivespucio') || p.full_name?.toLowerCase().includes('ariel mella');
+        
+        if (!uniqueMechanicsMap.has(p.id) && !isExclusionEmail && !isExclusionName) {
           uniqueMechanicsMap.set(p.id, { id: p.id, name: p.full_name, is_manual: false });
         }
       });
