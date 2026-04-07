@@ -280,11 +280,11 @@ const AdminLoginModal = ({
               <button 
                 type="submit"
                 disabled={isLoggingIn}
-                className="group relative w-full overflow-hidden"
+                className="group relative w-full overflow-hidden rounded-brand"
               >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" 
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-brand" 
                   style={{ background: `linear-gradient(to right, ${lp.theme_primary_color}, ${lp.theme_secondary_color || lp.theme_primary_color})` }} />
-                <div className="relative flex items-center justify-center gap-4 text-white py-6 rounded-3xl font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-2xl" 
+                <div className="relative flex items-center justify-center gap-4 text-white py-6 rounded-brand font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-2xl" 
                    style={{ backgroundColor: lp.theme_primary_color, boxShadow: `0 25px 50px -12px ${lp.theme_primary_color}4d` }}>
                   {isLoggingIn ? <Loader2 className="w-6 h-6 animate-spin" /> : <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />}
                   {isLoggingIn ? 'Autenticando...' : 'Iniciar Sesión'}
@@ -401,6 +401,8 @@ const LandingPage = ({
     ...(branding?.phone && !branding?.landing_config?.hero_phone ? { hero_phone: branding.phone, location_phone: branding.phone } : {}),
     ...(branding?.address && !branding?.landing_config?.location_address ? { location_address: branding.address } : {}),
   };
+
+  const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
 
   
@@ -541,34 +543,36 @@ const LandingPage = ({
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         {/* Mesh Gradients */}
         <motion.div 
-          animate={{ 
+          animate={!isTouch ? { 
             scale: [1, 1.2, 1],
             rotate: [0, 90, 0],
             x: [0, 100, 0],
             y: [0, -50, 0]
-          }}
+          } : {}}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full mix-blend-screen" 
+          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] blur-[100px] md:blur-[150px] rounded-full mix-blend-screen" 
           style={{ backgroundColor: `${lp.theme_primary_color}33` }}
         />
         <motion.div 
-          animate={{ 
+          animate={!isTouch ? { 
             scale: [1.2, 1, 1.2],
             rotate: [0, -90, 0],
             x: [0, -100, 0],
             y: [0, 50, 0]
-          }}
+          } : {}}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full mix-blend-screen" 
+          className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] blur-[100px] md:blur-[150px] rounded-full mix-blend-screen" 
           style={{ backgroundColor: `${lp.theme_secondary_color}1a` }}
         />
         
         {/* Static Blobs */}
-        <div className="absolute top-[20%] right-[10%] w-64 h-64 blur-[100px] rounded-full" style={{ backgroundColor: `${lp.theme_primary_color}0d` }} />
-        <div className="absolute bottom-[30%] left-[5%] w-80 h-80 bg-slate-500/5 blur-[100px] rounded-full" />
+        <div className="absolute top-[20%] right-[10%] w-64 h-64 blur-[80px] md:blur-[100px] rounded-full" style={{ backgroundColor: `${lp.theme_primary_color}0d` }} />
+        <div className="absolute bottom-[30%] left-[5%] w-80 h-80 bg-slate-500/5 blur-[80px] md:blur-[100px] rounded-full" />
         
-        {/* Subtle Grid */}
-        <div className="absolute inset-0 mix-blend-overlay opacity-[0.04]" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundRepeat:'repeat', backgroundSize:'200px'}} />
+        {/* Subtle Grid - Disabled on touch for performance */}
+        {!isTouch && (
+          <div className="absolute inset-0 mix-blend-overlay opacity-[0.04]" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundRepeat:'repeat', backgroundSize:'200px'}} />
+        )}
       </div>
 
       {/* Navigation */}

@@ -30,6 +30,7 @@ import { Garantias } from './components/Garantias';
 import { MessagesSettings } from './components/MessagesSettings';
 import { LandingEditor } from './components/LandingEditor';
 import { LiveEditOverlay } from './components/LiveEditOverlay';
+import { UpdateNotifier } from './components/UpdateNotifier';
 import { LandingPageConfig } from './types';
 
 
@@ -346,6 +347,7 @@ export default function App() {
       isMonitorMode={isMonitorMode}
       setIsMonitorMode={setIsMonitorMode}
     >
+      <UpdateNotifier />
       {activeTab === 'dashboard' && (
         <KanbanBoard
           tickets={tickets}
