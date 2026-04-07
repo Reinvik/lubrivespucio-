@@ -32,7 +32,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '../lib/utils';
-import { useGarageStore, TIME_SLOTS } from '../hooks/useGarageStore';
+import { useGarageStore, DEFAULT_AGENDA_SLOTS } from '../hooks/useGarageStore';
 import { isChileanHoliday, getChileanHoliday } from '../lib/chileanHolidays';
 
 interface AgendaProps {
@@ -66,6 +66,43 @@ export function Agenda({
     const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [formTime, setFormTime] = useState('');
     const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
+
+    const currentSlots = useMemo(() => {
+        if (!settings?.agenda_slots) return DEFAULT_AGENDA_SLOTS;
+        
+        // Handle legacy array format
+        if (Array.isArray(settings.agenda_slots)) {
+            return settings.agenda_slots.length > 0 ? settings.agenda_slots : DEFAULT_AGENDA_SLOTS;
+        }
+
+        // Handle new object format
+        // Use T12:00:00 to avoid timezone shifts changing the day when using getDay()
+        const date = parseISO(`${formDate}T12:00:00`);
+        const day = date.getDay(); // 0 is Sunday, 6 is Saturday
+
+        if (day === 0) { // Sunday
+            return (settings.agenda_slots.sundays && settings.agenda_slots.sundays.length > 0)
+                ? settings.agenda_slots.sundays 
+                : (settings.agenda_slots.weekends && settings.agenda_slots.weekends.length > 0 
+                    ? settings.agenda_slots.weekends 
+                    : DEFAULT_AGENDA_SLOTS);
+        }
+        
+        if (day === 6) { // Saturday
+            return (settings.agenda_slots.saturdays && settings.agenda_slots.saturdays.length > 0)
+                ? settings.agenda_slots.saturdays 
+                : (settings.agenda_slots.weekends && settings.agenda_slots.weekends.length > 0 
+                    ? settings.agenda_slots.weekends 
+                    : DEFAULT_AGENDA_SLOTS);
+        }
+
+        // Mon-Fri
+        return (settings.agenda_slots.weekdays && settings.agenda_slots.weekdays.length > 0)
+            ? settings.agenda_slots.weekdays 
+            : DEFAULT_AGENDA_SLOTS;
+    }, [settings?.agenda_slots, formDate]);
+
+
 
     const [newReminder, setNewReminder] = useState<Partial<Reminder>>({
         reminder_type: 'Mantención General',
@@ -891,7 +928,7 @@ export function Agenda({
                                 <div className="space-y-2 col-span-2">
                                     <label className="text-xs font-black text-zinc-400 uppercase tracking-widest">Hora Agendada</label>
                                     <div className="grid grid-cols-5 gap-2">
-                                        {TIME_SLOTS.map(slot => {
+                                        {currentSlots.map(slot => {
                                             const isOccupied = occupiedSlots.includes(slot);
                                             return (
                                                 <button

@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { Ticket, TicketStatus, Mechanic, Part, Customer, GarageSettings, Reminder, GarageNotification, SalaVenta, SalaVentaItem, PaymentMethod, DocumentType, Garantia } from '../types';
 import { supabase, supabaseGarage } from '../lib/supabase';
 
-export const TIME_SLOTS = [
+export const DEFAULT_AGENDA_SLOTS = [
   '09:00', '10:00', '11:00', '12:00',
-  '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'
+  '13:00', '14:00', '15:00', '16:00', '17:00'
 ];
+
+export const DEFAULT_AGENDA_DAYS = [1, 2, 3, 4, 5, 6]; // Lun-Sáb
 
 
 export function useGarageStore(companyId?: string) {

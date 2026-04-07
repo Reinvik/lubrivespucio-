@@ -16,7 +16,7 @@ interface InventoryProps {
 
 type SortField = 'id' | 'name' | 'stock' | 'price';
 type SortDirection = 'asc' | 'desc';
-type TabType = 'all' | 'labor' | 'alerts';
+type TabType = 'all' | 'alerts';
 
 const LIMIT = 50;
 
@@ -41,20 +41,17 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleteMode, setIsBulkDeleteMode] = useState(false);
-  const [counts, setCounts] = useState({ all: 0, labor: 0, alerts: 0 });
+  const [counts, setCounts] = useState({ all: 0, alerts: 0 });
 
   const fetchCounts = async () => {
     if (!settings?.company_id) return;
     try {
-      const [{ count: allCount }, { count: laborCount }, alertsResult] = await Promise.all([
+      const [{ count: allCount }, alertsResult] = await Promise.all([
         supabaseGarage.from('garage_parts').select('*', { count: 'exact', head: true })
           .eq('company_id', settings.company_id)
           .not('name', 'ilike', '%servicio%')
           .not('name', 'ilike', '%m.o.%')
           .not('name', 'ilike', '%mano de obra%'),
-        supabaseGarage.from('garage_parts').select('*', { count: 'exact', head: true })
-          .eq('company_id', settings.company_id)
-          .or('name.ilike.%servicio%,name.ilike.%m.o.%,name.ilike.%mano de obra%'),
         // Para alertas: traemos solo stock y min_stock para contar ítems bajo mínimo
         supabaseGarage.from('garage_parts').select('stock, min_stock')
           .eq('company_id', settings.company_id)
@@ -66,7 +63,6 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
 
       setCounts({
         all: allCount || 0,
-        labor: laborCount || 0,
         alerts: alertsCount
       });
     } catch (error) {
@@ -100,12 +96,8 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
         setHasMore(false); // todos los alertas cargados de una
         return;
       } else {
-        query = supabaseGarage.from('garage_parts').select('*').eq('company_id', settings.company_id);
-        if (tab === 'labor') {
-          query = query.or('name.ilike.%servicio%,name.ilike.%m.o.%,name.ilike.%mano de obra%');
-        } else {
-          query = query.not('name', 'ilike', '%servicio%').not('name', 'ilike', '%m.o.%').not('name', 'ilike', '%mano de obra%');
-        }
+        query = supabaseGarage.from('garage_parts').select('*').eq('company_id', settings.company_id)
+          .not('name', 'ilike', '%servicio%').not('name', 'ilike', '%m.o.%').not('name', 'ilike', '%mano de obra%');
       }
 
       if (term) {
@@ -313,7 +305,7 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Inventario</h2>
-          <p className="text-zinc-500 mt-1">Gestiona el stock de piezas y servicios.</p>
+          <p className="text-zinc-500 mt-1">Gestiona el stock de insumos y repuestos.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -366,21 +358,7 @@ export function Inventory({ parts, settings, onAddPart, onUpdatePart, onDeletePa
             {counts.all}
           </span>
         </button>
-        <button
-          onClick={() => setActiveTab('labor')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
-            activeTab === 'labor' 
-              ? "bg-white text-zinc-900 shadow-sm" 
-              : "text-zinc-500 hover:text-zinc-700"
-          )}
-        >
-          <Wrench className="w-4 h-4 text-blue-500" />
-          Servicios
-          <span className="ml-1 px-1.5 py-0.5 rounded-md bg-zinc-200 text-[10px] text-zinc-600">
-            {counts.labor}
-          </span>
-        </button>
+
         <button
           onClick={() => setActiveTab('alerts')}
           className={cn(

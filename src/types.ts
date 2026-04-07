@@ -26,6 +26,8 @@ export interface LubriService {
   pricingTiers?: PricingTier[];
   footerNote?: string;
   image?: string;
+  show_from_price?: boolean;
+  inventoryItemId?: string;
 }
 
 export interface TicketHistoryEntry {
@@ -192,6 +194,9 @@ export interface LandingPageConfig {
   theme_background_color?: string;
   theme_text_color?: string;
   theme_border_radius?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
+  // Agenda Configuration
+  agenda_slots_weekdays?: string[];
+  agenda_slots_weekends?: string[];
 }
 
 export interface ServicePricing {
@@ -230,6 +235,8 @@ export interface GarageSettings {
   services_catalog?: LubriService[];
   pricing?: ServicePricing;
   landing_config?: LandingPageConfig;
+  agenda_slots?: string[] | { weekdays: string[]; weekends: string[]; saturdays?: string[]; sundays?: string[] };
+  agenda_days?: number[];
 }
 
 // ─── Sala Ventas (Mostrador / POS) ───────────────────────────────────────────

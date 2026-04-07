@@ -18,7 +18,7 @@ interface LandingEditorProps {
 }
 
 
-type EditorTab = 'hero' | 'services' | 'location' | 'colores';
+type EditorTab = 'hero' | 'services' | 'location' | 'colores' | 'agenda';
 
 const DEFAULTS: LandingPageConfig = {
   hero_badge: 'Calidad Certificada en Vespucio',
@@ -52,6 +52,8 @@ const DEFAULTS: LandingPageConfig = {
   theme_background_color: '#070b14',
   theme_text_color: '#ffffff',
   theme_border_radius: '3xl',
+  agenda_slots_weekdays: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
+  agenda_slots_weekends: ['10:00', '11:00', '12:00', '13:00'],
 };
 
 // Simple field wrapper
@@ -401,6 +403,7 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
         services: ['services_section_tag', 'services_section_title', 'services_section_body'],
         location: ['location_tag', 'location_title', 'location_body', 'location_address', 'location_hours_weekday', 'location_hours_saturday', 'location_phone', 'location_maps_url', 'footer_copyright', 'gallery_images'],
         colores: ['theme_primary_color', 'theme_secondary_color', 'theme_accent_color', 'theme_background_color', 'theme_text_color', 'theme_border_radius'],
+        agenda: ['agenda_slots_weekdays', 'agenda_slots_weekends'],
       };
       const updates: Partial<LandingPageConfig> = {};
       tabKeys[activeTab].forEach(k => { (updates as any)[k] = (DEFAULTS as any)[k]; });
@@ -416,6 +419,7 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
     { id: 'services', label: 'Servicios', icon: Star },
     { id: 'location', label: 'Ubicación', icon: MapPin },
     { id: 'colores', label: 'Colores', icon: Palette },
+    { id: 'agenda', label: 'Agenda', icon: Clock },
   ];
 
   return (
@@ -567,7 +571,7 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
                     <h3 className="text-xs font-black uppercase text-zinc-400">Catálogo de Servicios</h3>
                     <button 
                       onClick={() => {
-                        setLocalServices([...localServices, { id: `servicio_${Date.now()}`, title: 'Nuevo Servicio', description: '', price: 0, details: '', pricingTiers: [] }]);
+                        setLocalServices([...localServices, { id: `servicio_${Date.now()}`, title: 'Nuevo Servicio', description: '', price: '0', details: '', pricingTiers: [], show_from_price: false }]);
                         setSaved(false);
                       }} 
                       className="text-xs text-zinc-400 hover:text-orange-400 font-bold uppercase transition-colors"
@@ -593,14 +597,35 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Field label="Nombre Servicio">
                           <Input value={svc.title} onChange={v => updateService(sIdx, { title: v })} />
                         </Field>
-                        <Field label="Descripción Corta">
-                          <Input value={svc.description} onChange={v => updateService(sIdx, { description: v })} />
+                        <Field label="Categoría">
+                          <Input value={svc.category || ''} onChange={v => updateService(sIdx, { category: v })} />
                         </Field>
                       </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Field label="Precio Público (Texto)" hint="Ej: $45.000">
+                          <Input value={svc.price || ''} onChange={v => updateService(sIdx, { price: v })} />
+                        </Field>
+                        <div className="flex items-end pb-1.5">
+                          <label className="flex items-center gap-3 px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl cursor-pointer hover:bg-zinc-700 transition-all w-full">
+                            <input
+                              type="checkbox"
+                              checked={svc.show_from_price}
+                              onChange={(e) => updateService(sIdx, { show_from_price: e.target.checked })}
+                              className="w-5 h-5 rounded-lg border-zinc-600 bg-zinc-900 text-orange-500 focus:ring-orange-500"
+                            />
+                            <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Mostrar "Desde"</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <Field label="Descripción Corta">
+                        <Input value={svc.description} onChange={v => updateService(sIdx, { description: v })} multiline />
+                      </Field>
 
                       <ImageUploader
                         label="Imagen del Servicio"
@@ -608,14 +633,31 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
                         onUploaded={url => updateService(sIdx, { image: url })}
                       />
 
-                      <Field label="Detalles">
-                        <Input value={svc.details} onChange={v => updateService(sIdx, { details: v })} multiline />
+                      <Field label="Detalles (Modal)">
+                        <Input value={svc.details || ''} onChange={v => updateService(sIdx, { details: v })} multiline />
                       </Field>
+                      
                       {/* Tiers */}
                       <div className="space-y-3 pt-3 border-t border-white/5">
-                        <label className="block text-[10px] font-black uppercase text-zinc-500 tracking-widest">Precios / Variantes</label>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] font-black uppercase text-zinc-500 tracking-widest">Precios / Variantes del Detalle</label>
+                          <button 
+                            onClick={() => {
+                              const newTiers = [...(svc.pricingTiers || []), { label: 'Nueva Variante', price: 0 }];
+                              updateService(sIdx, { pricingTiers: newTiers });
+                            }}
+                            className="text-[9px] font-black uppercase text-orange-500 hover:text-orange-400 transition-colors"
+                          >
+                            + Añadir Variante
+                          </button>
+                        </div>
+                        
+                        {(svc.pricingTiers || []).length === 0 && (
+                          <p className="text-[10px] text-zinc-600 italic">No hay variantes definidas para el detalle del servicio.</p>
+                        )}
+
                         {svc.pricingTiers?.map((t, tIdx) => (
-                          <div key={tIdx} className="flex gap-2 items-center bg-black/20 p-2 rounded-lg">
+                          <div key={tIdx} className="flex gap-2 items-center bg-black/20 p-2 rounded-lg group/tier">
                             <input
                               value={t.label}
                               onChange={e => {
@@ -623,7 +665,7 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
                                 newTiers[tIdx].label = e.target.value;
                                 updateService(sIdx, { pricingTiers: newTiers });
                               }}
-                              className="flex-1 bg-transparent text-xs text-white border border-white/10 rounded px-2 py-1 outline-none focus:border-orange-500"
+                              className="flex-1 bg-transparent text-xs text-white border border-white/10 rounded px-2 py-1 outline-none focus:border-orange-500 font-bold"
                               placeholder="Ej: 10W40"
                             />
                             <div className="relative w-24">
@@ -639,6 +681,15 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
                                 className="w-full pl-5 pr-2 py-1 bg-transparent text-xs text-white font-bold border border-white/10 rounded outline-none focus:border-orange-500 text-right"
                               />
                             </div>
+                            <button
+                              onClick={() => {
+                                const newTiers = svc.pricingTiers?.filter((_, i) => i !== tIdx);
+                                updateService(sIdx, { pricingTiers: newTiers });
+                              }}
+                              className="p-1 text-zinc-600 hover:text-red-500 transition-colors opacity-0 group-hover/tier:opacity-100"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -823,6 +874,50 @@ export function LandingEditor({ settings, onUpdate, onLiveEdit, onClose }: Landi
                   <Palette className="w-5 h-5 text-orange-500 shrink-0" />
                   <p className="text-xs text-zinc-400 leading-relaxed">
                     Personaliza los colores para que coincidan con la marca del taller. Estos cambios se reflejarán instantáneamente en la vista previa a la derecha.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'agenda' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex gap-4">
+                  <Info className="w-5 h-5 text-blue-500 shrink-0" />
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Configura los bloques horarios disponibles para el agendamiento público. 
+                    Separa las horas con comas (ej: 09:00, 10:30, 15:00).
+                  </p>
+                </div>
+
+                <Field 
+                  label="Horas Disponibles (Lunes a Viernes)" 
+                  hint="Ej: 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00"
+                >
+                  <Input 
+                    value={(merged.agenda_slots_weekdays || []).join(', ')} 
+                    onChange={v => setConfig('agenda_slots_weekdays', v.split(',').map(s => s.trim()).filter(Boolean))} 
+                    placeholder="10:00, 11:00..."
+                    multiline
+                  />
+                </Field>
+
+                <Field 
+                  label="Horas Disponibles (Sábados)" 
+                  hint="Días de fin de semana (Sábados/Domingos). Ej: 10:00, 11:00, 12:00, 13:00"
+                >
+                  <Input 
+                    value={(merged.agenda_slots_weekends || []).join(', ')} 
+                    onChange={v => setConfig('agenda_slots_weekends', v.split(',').map(s => s.trim()).filter(Boolean))} 
+                    placeholder="10:00, 11:00..."
+                    multiline
+                  />
+                </Field>
+
+                <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20 flex gap-4">
+                  <Clock className="w-5 h-5 text-orange-500 shrink-0" />
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Los clientes verán estas opciones según el día que seleccionen en el calendario. 
+                    Si no configuras nada, se usarán los horarios por defecto (10:00 a 17:00).
                   </p>
                 </div>
               </div>

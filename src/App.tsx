@@ -567,6 +567,7 @@ export default function App() {
           ticketPatente={checklistTicket.patente}
           initialData={checklistTicket.ingreso_checklist}
           onClose={() => setIsChecklistModalOpen(false)}
+          settings={settings}
           onSave={async (checklist) => {
             await updateTicket(checklistTicket.id, { ingreso_checklist: checklist });
             setIsChecklistModalOpen(false);

@@ -105,10 +105,16 @@ const ServiceDetailModal = ({
 
               <div className="space-y-12">
                 <div className="space-y-6">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                    <Info className="w-4 h-4" />
-                    Detalles del Servicio
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                      <Info className="w-4 h-4" />
+                      Detalles del Servicio
+                    </h3>
+                    <span className="text-xl font-black text-brand-primary">
+                      {service.show_from_price && !service.price.toLowerCase().includes('desde') ? 'Desde ' : ''}
+                      {service.price}
+                    </span>
+                  </div>
                   <p className="text-lg text-slate-400 font-medium leading-relaxed">
                     {service.details || service.description}
                   </p>
@@ -418,14 +424,16 @@ const LandingPage = ({
             price: t.price || 0
           }));
           const minPrice = Math.min(...newService.pricingTiers.map(t => t.price));
-          newService.price = `Desde $${minPrice.toLocaleString('es-CL')}`;
+          newService.price = `$${minPrice.toLocaleString('es-CL')}`;
+          newService.show_from_price = true;
         } else if (p.oil_simple) {
           newService.pricingTiers = service.pricingTiers?.map(tier => ({
             ...tier,
             price: p.oil_simple[tier.label] || tier.price
           }));
           const minPrice = Math.min(...(newService.pricingTiers?.map(t => t.price) || [29000]));
-          newService.price = `Desde $${minPrice.toLocaleString('es-CL')}`;
+          newService.price = `$${minPrice.toLocaleString('es-CL')}`;
+          newService.show_from_price = true;
         }
       } else if (service.id === 'cambio-aceite-completo') {
         if (p.oil_full) {
@@ -434,7 +442,8 @@ const LandingPage = ({
             price: p.oil_full[tier.label] || tier.price
           }));
           const minPrice = Math.min(...(newService.pricingTiers?.map(t => t.price) || [49000]));
-          newService.price = `Desde $${minPrice.toLocaleString('es-CL')}`;
+          newService.price = `$${minPrice.toLocaleString('es-CL')}`;
+          newService.show_from_price = true;
         }
       } else if (service.id === 'pastillas-freno') {
         if (p.brakes && p.brakes.length > 0) {
@@ -443,9 +452,11 @@ const LandingPage = ({
             price: t.price || 0
           }));
           const minPrice = Math.min(...newService.pricingTiers.map(t => t.price));
-          newService.price = `Desde $${minPrice.toLocaleString('es-CL')}`;
+          newService.price = `$${minPrice.toLocaleString('es-CL')}`;
+          newService.show_from_price = true;
         } else if (p.brake_pads) {
-          newService.price = `Desde $${Number(p.brake_pads).toLocaleString('es-CL')}`;
+          newService.price = `$${Number(p.brake_pads).toLocaleString('es-CL')}`;
+          newService.show_from_price = true;
         }
       } else if (service.id === 'inspeccion-18-puntos') {
         if (p.tune_ups && p.tune_ups.length > 0) {
@@ -454,9 +465,11 @@ const LandingPage = ({
             price: t.price || 0
           }));
           const minPrice = Math.min(...newService.pricingTiers.map(t => t.price));
-          newService.price = `Desde $${minPrice.toLocaleString('es-CL')}`;
+          newService.price = `$${minPrice.toLocaleString('es-CL')}`;
+          newService.show_from_price = true;
         } else if (p.inspection) {
-          newService.price = `Desde $${Number(p.inspection).toLocaleString('es-CL')}`;
+          newService.price = `$${Number(p.inspection).toLocaleString('es-CL')}`;
+          newService.show_from_price = true;
         }
       }
 
@@ -814,7 +827,10 @@ const LandingPage = ({
                   </p>
                   
                   <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-sm font-black text-brand-primary uppercase tracking-widest">{service.price}</span>
+                    <span className="text-sm font-black text-brand-primary uppercase tracking-widest">
+                      {service.show_from_price && !service.price.toLowerCase().includes('desde') ? 'Desde ' : ''}
+                      {service.price}
+                    </span>
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-brand-primary transition-colors">
                       Ver detalle
                       <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

@@ -4,10 +4,12 @@ import { GarageSettings } from '../types';
 import {
   Save, Building2, MapPin, Phone, MessageSquare, Loader2, CheckCircle,
   Palette, Download, FileSpreadsheet, Lock, Eye, EyeOff, ScrollText,
-  Puzzle, CircleDollarSign, Layout as LayoutIcon, Settings, ExternalLink
+  Puzzle, CircleDollarSign, Layout as LayoutIcon, Settings, ExternalLink,
+  Calendar as CalendarIcon, Clock, Trash2, Plus, GripVertical, Settings2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Ticket, Part } from '../types';
+import { Ticket, Part, LubriService } from '../types';
+import { LUBRIgarage_SERVICES } from '../data/services';
 import { cn } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { OperationsManual } from './OperationsManual';
@@ -20,7 +22,7 @@ interface SettingsFormProps {
   parts?: Part[];
 }
 
-type ActiveTab = 'general' | 'design' | 'pricing' | 'security' | 'export' | 'manual' | 'extension';
+type ActiveTab = 'general' | 'design' | 'agenda' | 'security' | 'export' | 'manual' | 'extension';
 
 const DEFAULT_PRICING = {
   oil_changes: [
@@ -61,6 +63,9 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
     favicon_url: '',
     admin_password: '',
     pricing: DEFAULT_PRICING,
+    agenda_slots: settings?.agenda_slots || ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
+    agenda_days: settings?.agenda_days || [1, 2, 3, 4, 5, 6],
+    services_catalog: settings?.services_catalog || LUBRIgarage_SERVICES,
   });
 
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
@@ -102,6 +107,9 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
         favicon_url:             settings.favicon_url             || '',
         admin_password:          settings.admin_password          || '',
         pricing:                 settings.pricing                 || DEFAULT_PRICING,
+        agenda_slots:            settings.agenda_slots            || ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
+        agenda_days:             settings.agenda_days             || [1, 2, 3, 4, 5, 6],
+        services_catalog:        settings.services_catalog        || LUBRIgarage_SERVICES,
       });
     }
   }, [settings]);
@@ -508,107 +516,8 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
     </div>
   );
 
-  const renderPricing = () => (
-    <div className="space-y-8">
-      <div>
-        <h3 className="text-lg font-bold text-zinc-900">Gestión de Precios Dinámicos</h3>
-        <p className="text-sm text-zinc-500 mt-1">Configura los precios de los servicios y vincúlalos a ítems del inventario.</p>
-      </div>
-      <div className="space-y-6">
-        {(['oil_changes', 'brakes', 'tune_ups'] as const).map(category => {
-          const labels: Record<string, string> = { oil_changes: 'Cambios de Aceite', brakes: 'Frenos', tune_ups: 'Afinamiento / Inspección' };
-          const items = formData.pricing?.[category] || [];
-          return (
-            <div key={category} className="p-6 rounded-2xl border border-zinc-200 bg-white shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-zinc-900">{labels[category]}</h4>
-                <button type="button"
-                  onClick={() => setFormData(prev => {
-                    const pricing = { ...prev.pricing } as any;
-                    pricing[category] = [...(pricing[category] || []), { id: crypto.randomUUID(), name: '', price: 0 }];
-                    return { ...prev, pricing };
-                  })}
-                  className="text-xs px-3 py-1.5 bg-zinc-100 font-bold text-zinc-700 rounded-lg hover:bg-zinc-200 transition-colors">
-                  + Agregar Servicio
-                </button>
-              </div>
-              <div className="space-y-3">
-                {items.map((item: any, index: number) => (
-                  <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3 rounded-xl border border-zinc-100 bg-zinc-50/50">
-                    <div className="md:col-span-4 space-y-1">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Inventario Vinculado</label>
-                      <select className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm outline-none bg-white"
-                        value={item.inventoryItemId || ''}
-                        onChange={e => {
-                          const newId = e.target.value;
-                          const selectedPart = parts?.find(p => p.id === newId);
-                          setFormData(prev => {
-                            const pricing = { ...prev.pricing } as any;
-                            const newItems = [...pricing[category]];
-                            newItems[index] = { ...newItems[index], inventoryItemId: newId || null, price: selectedPart ? selectedPart.price : newItems[index].price, name: (!newItems[index].name && selectedPart) ? selectedPart.name : newItems[index].name };
-                            pricing[category] = newItems;
-                            return { ...prev, pricing };
-                          });
-                        }}>
-                        <option value="">-- Manual --</option>
-                        {parts?.map(p => <option key={p.id} value={p.id}>{p.name} (${p.price.toLocaleString()})</option>)}
-                      </select>
-                    </div>
-                    <div className="md:col-span-4 space-y-1">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Nombre Público</label>
-                      <input type="text" className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm outline-none bg-white"
-                        placeholder="Nombre del servicio" value={item.name}
-                        onChange={e => setFormData(prev => {
-                          const pricing = { ...prev.pricing } as any;
-                          const newItems = [...pricing[category]];
-                          newItems[index] = { ...newItems[index], name: e.target.value };
-                          pricing[category] = newItems;
-                          return { ...prev, pricing };
-                        })} />
-                    </div>
-                    <div className="md:col-span-3 space-y-1">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Precio Final</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
-                        <input type="number" className="w-full pl-7 pr-3 py-2 rounded-lg border border-zinc-200 text-sm font-mono bg-white outline-none"
-                          value={item.price}
-                          onChange={e => setFormData(prev => {
-                            const pricing = { ...prev.pricing } as any;
-                            const newItems = [...pricing[category]];
-                            newItems[index] = { ...newItems[index], price: parseInt(e.target.value) || 0 };
-                            pricing[category] = newItems;
-                            return { ...prev, pricing };
-                          })} />
-                      </div>
-                    </div>
-                    <div className="md:col-span-1 flex justify-center">
-                      <button type="button"
-                        onClick={() => setFormData(prev => {
-                          const pricing = { ...prev.pricing } as any;
-                          const newItems = [...pricing[category]];
-                          newItems.splice(index, 1);
-                          pricing[category] = newItems;
-                          return { ...prev, pricing };
-                        })}
-                        className="w-9 h-9 rounded-xl bg-white border border-rose-100 text-rose-500 hover:bg-rose-50 transition-colors flex items-center justify-center font-bold">
-                        &times;
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {items.length === 0 && (
-                  <div className="py-6 flex flex-col items-center border-2 border-dashed border-zinc-200 rounded-xl bg-zinc-50">
-                    <p className="text-sm font-medium text-zinc-500">No hay servicios.</p>
-                    <p className="text-xs text-zinc-400">Haz clic en "+ Agregar Servicio".</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+
+
 
   const renderSecurity = () => (
     <div className="space-y-8">
@@ -720,6 +629,234 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
     </div>
   );
 
+  const renderAgenda = () => {
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const currentDays = formData.agenda_days || [];
+    
+    // Normalizar slots para manejar legacy (array) y nuevo (objeto)
+    const rawSlots = formData.agenda_slots;
+    const weekdaySlots = Array.isArray(rawSlots) ? rawSlots : (rawSlots?.weekdays || []);
+    const saturdaySlots = Array.isArray(rawSlots) ? [] : (rawSlots?.saturdays || rawSlots?.weekends || []);
+    const sundaySlots = Array.isArray(rawSlots) ? [] : (rawSlots?.sundays || rawSlots?.weekends || []);
+
+    const addSlot = (type: 'weekdays' | 'saturdays' | 'sundays') => {
+      const newSlot = prompt('Ingrese el horario (HH:MM):', '09:00');
+      if (newSlot && /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(newSlot)) {
+        const target = type === 'weekdays' ? weekdaySlots : type === 'saturdays' ? saturdaySlots : sundaySlots;
+        const updated = [...target, newSlot].sort();
+        
+        setFormData(prev => ({
+          ...prev,
+          agenda_slots: {
+            weekdays: type === 'weekdays' ? updated : weekdaySlots,
+            saturdays: type === 'saturdays' ? updated : saturdaySlots,
+            sundays: type === 'sundays' ? updated : sundaySlots,
+            weekends: (type === 'saturdays' || type === 'sundays') ? updated : (saturdaySlots || sundaySlots) // Fallback for old code
+          }
+        }));
+      } else if (newSlot) {
+        alert('Formato inválido. Use HH:MM (ej: 14:30)');
+      }
+    };
+
+    const generateSlots = (type: 'weekdays' | 'saturdays' | 'sundays') => {
+      const start = prompt('Hora de inicio (HH:MM):', '09:00');
+      if (!start) return;
+      const end = prompt('Hora de fin (HH:MM):', '18:00');
+      if (!end) return;
+      const interval = prompt('Intervalo en minutos:', '60');
+      if (!interval) return;
+
+      const slots: string[] = [];
+      let [h, m] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      const int = Number(interval);
+
+      while (h < eh || (h === eh && m <= em)) {
+        slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+        m += int;
+        if (m >= 60) {
+          h += Math.floor(m / 60);
+          m = m % 60;
+        }
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        agenda_slots: {
+          weekdays: type === 'weekdays' ? slots : weekdaySlots,
+          saturdays: type === 'saturdays' ? slots : saturdaySlots,
+          sundays: type === 'sundays' ? slots : sundaySlots,
+          weekends: (type === 'saturdays' || type === 'sundays') ? slots : (saturdaySlots || sundaySlots)
+        }
+      }));
+    };
+
+    const removeSlot = (type: 'weekdays' | 'saturdays' | 'sundays', index: number) => {
+      const target = type === 'weekdays' ? weekdaySlots : type === 'saturdays' ? saturdaySlots : sundaySlots;
+      const updated = target.filter((_, i) => i !== index);
+      
+      setFormData(prev => ({
+        ...prev,
+        agenda_slots: {
+          weekdays: type === 'weekdays' ? updated : weekdaySlots,
+          saturdays: type === 'saturdays' ? updated : saturdaySlots,
+          sundays: type === 'sundays' ? updated : sundaySlots,
+          weekends: (type === 'saturdays' || type === 'sundays') ? updated : (saturdaySlots || sundaySlots)
+        }
+      }));
+    };
+
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div>
+          <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-zinc-400" /> Configuración de Agenda
+          </h3>
+          <p className="text-sm text-zinc-500 mt-1">Define los días de atención y los horarios disponibles para cada tipo de día.</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8">
+          {/* Días de la semana */}
+          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm space-y-4">
+            <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Días de Atención Pública</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {days.map((day, index) => (
+                <label key={index} className="flex items-center justify-between p-3 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-all cursor-pointer group">
+                  <span className="text-xs font-bold text-zinc-700">{day}</span>
+                  <input
+                    type="checkbox"
+                    checked={currentDays.includes(index)}
+                    onChange={() => {
+                      const newDays = currentDays.includes(index)
+                        ? currentDays.filter(d => d !== index)
+                        : [...currentDays, index].sort();
+                      setFormData({ ...formData, agenda_days: newDays });
+                    }}
+                    className="w-5 h-5 rounded-lg border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition-all"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Bloques Semanales */}
+            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm space-y-4 flex flex-col">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-black text-zinc-900 uppercase tracking-widest">Lunes a Viernes</h4>
+                  <p className="text-[10px] text-zinc-400">Días laborales</p>
+                </div>
+                <div className="flex gap-1">
+                  <button type="button" onClick={() => generateSlots('weekdays')}
+                    className="text-[9px] px-2 py-1 bg-zinc-100 text-zinc-600 font-bold rounded-lg hover:bg-zinc-200 transition-colors uppercase tracking-wider">
+                    Auto
+                  </button>
+                  <button type="button" onClick={() => addSlot('weekdays')}
+                    className="text-[9px] px-2 py-1 bg-zinc-900 text-white font-bold rounded-lg hover:bg-black transition-colors uppercase tracking-wider">
+                    + Slot
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
+                {weekdaySlots.length === 0 ? (
+                  <div className="py-8 text-center text-zinc-400 text-[10px] font-medium border-2 border-dashed border-zinc-100 rounded-2xl">Sin horarios</div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {weekdaySlots.map((slot, index) => (
+                      <div key={index} className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-xl border border-zinc-100 group hover:border-zinc-400 transition-all">
+                        <span className="text-xs font-mono font-bold text-zinc-800">{slot}</span>
+                        <button type="button" onClick={() => removeSlot('weekdays', index)} className="p-1 text-zinc-300 hover:text-red-500 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bloques Sábados */}
+            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm space-y-4 flex flex-col">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-black text-zinc-900 uppercase tracking-widest">Sábados</h4>
+                  <p className="text-[10px] text-zinc-400">Horario especial</p>
+                </div>
+                <div className="flex gap-1">
+                  <button type="button" onClick={() => generateSlots('saturdays')}
+                    className="text-[9px] px-2 py-1 bg-orange-100 text-orange-600 font-bold rounded-lg hover:bg-orange-200 transition-colors uppercase tracking-wider">
+                    Auto
+                  </button>
+                  <button type="button" onClick={() => addSlot('saturdays')}
+                    className="text-[9px] px-2 py-1 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition-colors uppercase tracking-wider">
+                    + Slot
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
+                {saturdaySlots.length === 0 ? (
+                  <div className="py-8 text-center text-zinc-400 text-[10px] font-medium border-2 border-dashed border-zinc-100 rounded-2xl">Sin horarios</div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {saturdaySlots.map((slot, index) => (
+                      <div key={index} className="flex items-center justify-between p-2.5 bg-orange-50 rounded-xl border border-orange-100 group hover:border-orange-400 transition-all">
+                        <span className="text-xs font-mono font-bold text-orange-900">{slot}</span>
+                        <button type="button" onClick={() => removeSlot('saturdays', index)} className="p-1 text-orange-200 hover:text-red-500 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bloques Domingos */}
+            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm space-y-4 flex flex-col">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-black text-zinc-900 uppercase tracking-widest">Domingos</h4>
+                  <p className="text-[10px] text-zinc-400">Horario descanso/especial</p>
+                </div>
+                <div className="flex gap-1">
+                  <button type="button" onClick={() => generateSlots('sundays')}
+                    className="text-[9px] px-2 py-1 bg-red-100 text-red-600 font-bold rounded-lg hover:bg-red-200 transition-colors uppercase tracking-wider">
+                    Auto
+                  </button>
+                  <button type="button" onClick={() => addSlot('sundays')}
+                    className="text-[9px] px-2 py-1 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors uppercase tracking-wider">
+                    + Slot
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
+                {sundaySlots.length === 0 ? (
+                  <div className="py-8 text-center text-zinc-400 text-[10px] font-medium border-2 border-dashed border-zinc-100 rounded-2xl">Sin horarios</div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {sundaySlots.map((slot, index) => (
+                      <div key={index} className="flex items-center justify-between p-2.5 bg-red-50 rounded-xl border border-red-100 group hover:border-red-400 transition-all">
+                        <span className="text-xs font-mono font-bold text-red-900">{slot}</span>
+                        <button type="button" onClick={() => removeSlot('sundays', index)} className="p-1 text-red-200 hover:text-red-500 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderManual = () => (
     <OperationsManual themeColor={formData.theme_menu_highlight || '#f97316'} />
   );
@@ -762,7 +899,7 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
     switch (activeTab) {
       case 'general': return renderGeneral();
       case 'design': return renderDesign();
-      case 'pricing': return renderPricing();
+      case 'agenda': return renderAgenda();
       case 'security': return renderSecurity();
       case 'export': return renderExport();
       case 'manual': return renderManual();
@@ -776,7 +913,7 @@ export function SettingsForm({ settings, onUpdate, tickets, parts }: SettingsFor
   const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'general', label: 'General', icon: <Settings className="w-4 h-4" /> },
     { id: 'design', label: 'Diseño', icon: <Palette className="w-4 h-4" /> },
-    { id: 'pricing', label: 'Precios', icon: <CircleDollarSign className="w-4 h-4" /> },
+    { id: 'agenda', label: 'Agenda', icon: <CalendarIcon className="w-4 h-4" /> },
     { id: 'security', label: 'Seguridad', icon: <Lock className="w-4 h-4" /> },
     { id: 'export', label: 'Exportar', icon: <Download className="w-4 h-4" /> },
     { id: 'manual', label: 'Manual', icon: <ScrollText className="w-4 h-4" /> },
