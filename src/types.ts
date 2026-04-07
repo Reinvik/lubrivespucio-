@@ -98,6 +98,7 @@ export interface Ticket {
 export interface Mechanic {
   id: string;
   name: string;
+  is_manual?: boolean;
 }
 
 export interface Part {

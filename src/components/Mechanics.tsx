@@ -9,7 +9,7 @@ interface MechanicsProps {
     mechanics: Mechanic[];
     tickets: Ticket[];
     onAdd: () => void;
-    onDelete: (id: string) => void;
+    onDelete: (id: string) => Promise<void>;
     onUpdateTicket?: (id: string, updates: Partial<Ticket>) => Promise<void>;
 }
 
@@ -18,6 +18,17 @@ export function Mechanics({ mechanics, tickets, onAdd, onDelete, onUpdateTicket 
     const [selectedDate, setSelectedDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
     const [selectedMonth, setSelectedMonth] = React.useState(new Date().getMonth());
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
+
+    const handleDeleteInternal = async (id: string, name: string) => {
+        if (window.confirm(`¿Está seguro de que desea eliminar al técnico ${name.toUpperCase()}? Esta acción no se puede deshacer.`)) {
+            try {
+                await onDelete(id);
+            } catch (error) {
+                console.error('Error deleting mechanic:', error);
+                alert('No se pudo eliminar al técnico. Es posible que tenga registros asociados (tickets, ventas, etc) que impiden su eliminación.');
+            }
+        }
+    };
 
     const globalStats = React.useMemo(() => {
         const filterTicketsByPeriod = (targetDate: Date, mode: 'daily' | 'monthly' | 'yearly') => {
@@ -135,10 +146,10 @@ export function Mechanics({ mechanics, tickets, onAdd, onDelete, onUpdateTicket 
 
     const getStatusColor = (status: TicketStatus) => {
         switch (status) {
-            case 'Ingresado': return 'text-zinc-500 bg-zinc-100';
-            case 'En Espera': return 'text-amber-600 bg-amber-50';
-            case 'En Reparación': return 'text-blue-600 bg-blue-50';
-            case 'Listo para Entrega': return 'text-emerald-600 bg-emerald-50';
+            case 'Ingreso': return 'text-zinc-500 bg-zinc-100';
+            case 'En espera': return 'text-amber-600 bg-amber-50';
+            case 'En Mantención': return 'text-blue-600 bg-blue-50';
+            case 'Listo para entrega': return 'text-emerald-600 bg-emerald-50';
             default: return 'text-zinc-400 bg-zinc-50';
         }
     };
@@ -314,13 +325,15 @@ export function Mechanics({ mechanics, tickets, onAdd, onDelete, onUpdateTicket 
                                         </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => onDelete(m.id)}
-                                    className="p-2.5 text-zinc-300 hover:text-red-500 rounded-xl hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
-                                    title="Eliminar técnico"
-                                >
-                                    <UserMinus className="w-5 h-5" />
-                                </button>
+                                {m.is_manual && (
+                                    <button
+                                        onClick={() => handleDeleteInternal(m.id, m.name)}
+                                        className="p-2.5 text-zinc-300 hover:text-red-500 rounded-xl hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                                        title="Eliminar técnico"
+                                    >
+                                        <UserMinus className="w-5 h-5" />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Body / Stats */}

@@ -77,10 +77,10 @@ export function useGarageStore(companyId?: string) {
 
       // Combine manual mechanics and platform profiles
       const uniqueMechanicsMap = new Map<string, Mechanic>();
-      (mechanicsData || []).forEach(m => uniqueMechanicsMap.set(m.id, m));
+      (mechanicsData || []).forEach(m => uniqueMechanicsMap.set(m.id, { ...m, is_manual: true }));
       (profilesData || []).forEach((p: any) => {
         if (!uniqueMechanicsMap.has(p.id)) {
-          uniqueMechanicsMap.set(p.id, { id: p.id, name: p.full_name });
+          uniqueMechanicsMap.set(p.id, { id: p.id, name: p.full_name, is_manual: false });
         }
       });
       const combinedMechanics = Array.from(uniqueMechanicsMap.values())
@@ -343,8 +343,9 @@ export function useGarageStore(companyId?: string) {
       await fetchData();
     } catch (error) {
       console.error('Error deleting mechanic:', error);
+      throw error;
     }
-  }, [fetchData]);
+  }, [companyId, fetchData]);
 
   const addPart = useCallback(async (part: Partial<Part>) => {
     try {

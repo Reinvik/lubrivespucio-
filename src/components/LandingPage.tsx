@@ -280,12 +280,13 @@ const AdminLoginModal = ({
               <button 
                 type="submit"
                 disabled={isLoggingIn}
-                className="group relative w-full overflow-hidden rounded-brand"
+                className="group relative w-full overflow-hidden rounded-brand transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-2xl"
+                style={{ boxShadow: `0 25px 50px -12px ${lp.theme_primary_color}4d` }}
               >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-brand" 
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" 
                   style={{ background: `linear-gradient(to right, ${lp.theme_primary_color}, ${lp.theme_secondary_color || lp.theme_primary_color})` }} />
-                <div className="relative flex items-center justify-center gap-4 text-white py-6 rounded-brand font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-2xl" 
-                   style={{ backgroundColor: lp.theme_primary_color, boxShadow: `0 25px 50px -12px ${lp.theme_primary_color}4d` }}>
+                <div className="relative flex items-center justify-center gap-4 text-white py-6 font-black uppercase tracking-[0.2em]" 
+                   style={{ backgroundColor: lp.theme_primary_color }}>
                   {isLoggingIn ? <Loader2 className="w-6 h-6 animate-spin" /> : <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />}
                   {isLoggingIn ? 'Autenticando...' : 'Iniciar Sesión'}
                 </div>
@@ -592,7 +593,7 @@ const LandingPage = ({
             <a href="#contacto" className="text-sm font-bold tracking-wide uppercase text-slate-400 hover:text-brand-primary transition-colors">Contacto</a>
             <button 
               onClick={() => setIsAdminLoginOpen(true)}
-              className="text-white font-black text-xs uppercase tracking-widest py-3 px-6 rounded-full transition-all active:scale-95 shadow-lg"
+              className="text-white font-black text-xs uppercase tracking-widest py-3 px-6 rounded-brand transition-all active:scale-95 shadow-lg shadow-brand-primary/20 hover:brightness-110"
               style={{ 
                 backgroundColor: lp.theme_primary_color, 
                 boxShadow: `0 10px 15px -3px ${lp.theme_primary_color}33` 
@@ -693,7 +694,7 @@ const LandingPage = ({
                   <button 
                     type="submit"
                     disabled={isSearching}
-                    className="text-white h-full px-8 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+                    className="text-white h-full px-8 rounded-brand font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 hover-bg-brand-primary"
                     style={{ backgroundColor: lp.theme_primary_color }}
                   >
                     {isSearching ? 'Buscando...' : 'Consultar'}
