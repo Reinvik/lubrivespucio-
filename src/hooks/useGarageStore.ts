@@ -1280,6 +1280,19 @@ export function useGarageStore(companyId?: string) {
       }
     },
     saveCustomerFeedback,
+    fetchDomainConfig: async (domain: string) => {
+      const { data, error } = await supabase
+        .from('talleres_config')
+        .select('*')
+        .eq('dominio', domain)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching domain config:', error);
+        return null;
+      }
+      return data;
+    },
     // ─── Garantías ──────────────────────────────────────────────────
     garantias,
     updateGarantia: async (id: string, updates: Partial<Garantia>) => {

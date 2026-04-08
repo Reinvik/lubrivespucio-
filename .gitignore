@@ -1,12 +1,85 @@
+# ---- Dependencias ----
 node_modules/
+
+# ---- Build outputs ----
 build/
 dist/
 coverage/
-.DS_Store
-*.log
-.env*
+
+# ---- Variables de entorno (NUNCA subir al repo) ----
+.env
+.env.*
 !.env.example
+
+# ---- Vercel ----
 .vercel
+
+# ---- OS & Editor ----
+.DS_Store
+Thumbs.db
+*.log
+
+# ---- Archivos de datos / Excel ----
 *.xlsx
+*.xlsb
+*.xls
+*.csv
 ~$*
-.env*.local
+
+# ---- Scripts de migración / utilidades temporales (root) ----
+analyze_*.cjs
+analyze_*.ts
+apply_*.cjs
+apply_*.ts
+audit_*.ts
+bulk_*.ts
+check_*.cjs
+check_*.ts
+cleanup_*.ts
+compare_*.cjs
+debug_*.ts
+discovery.ts
+dry_run_*.cjs
+extract_*.cjs
+final_*.ts
+find_*.ts
+find_*.cjs
+generate_*.cjs
+get_tables.ts
+import_*.ts
+import_*.cjs
+inspect_*.ts
+inspect_*.cjs
+investigate_*.ts
+list_*.cjs
+list_*.ts
+list_unique_*.cjs
+migrate_*.ts
+read_excel_*.cjs
+refine_*.cjs
+register_*.cjs
+repair_*.ts
+scan_*.ts
+scan_*.cjs
+search_*.cjs
+sync_*.ts
+sync_*.cjs
+test-edge.cjs
+test_*.cjs
+test_*.ts
+total_*.ts
+update_inventory_excel.ts
+update_system_*.cjs
+verify_*.cjs
+
+# ---- Archivos de log y datos generados ----
+migrate_log.txt
+build_error.log
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!metadata.json
+
+# ---- Archivos temporales con nombre raro ----
+ariel_company.json同期

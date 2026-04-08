@@ -32,6 +32,9 @@ import { LandingEditor } from './components/LandingEditor';
 import { LiveEditOverlay } from './components/LiveEditOverlay';
 import { UpdateNotifier } from './components/UpdateNotifier';
 import { LandingPageConfig } from './types';
+import { SkeletonLoader } from './components/SkeletonLoader';
+import { LandingNexus } from './components/LandingNexus';
+import { Globe, HardDrive } from 'lucide-react';
 
 
 type ViewState = 'landing' | 'customer' | 'dashboard';
@@ -80,6 +83,13 @@ export default function App() {
   const [isMonitorMode, setIsMonitorMode] = useState(false);
 
   const { isSuperAdmin, profile } = useAuth();
+  
+  const [tenantConfig, setTenantConfig] = useState<any>(null);
+  const [isSaasDomain, setIsSaasDomain] = useState(false);
+  const [resolvingDomain, setResolvingDomain] = useState(true);
+
+  // El companyId efectivo depende de si estamos logueados o si el dominio nos da uno
+  const effectiveCompanyId = profile?.company_id || tenantConfig?.id;
 
   const {
     // Garage operations
@@ -96,8 +106,43 @@ export default function App() {
     fetchCompanies, addIntelligentReminder, fetchActiveReminder, fetchPublicSettingsBySlug, fetchOccupiedReminders, fetchPublicVehicleInfo,
     addReminder, deleteReminder, updateReminder, refreshData, uploadTicketPhoto,
     salaVentas, addSalaVenta, fetchSalaVentas, deleteSalaVenta,
-    saveCustomerFeedback, garantias, addGarantia, updateGarantia, deleteGarantia
-  } = useGarageStore(profile?.company_id);
+    saveCustomerFeedback, garantias, addGarantia, updateGarantia, deleteGarantia,
+    fetchDomainConfig
+  } = useGarageStore(effectiveCompanyId);
+
+  // Resolución de Dominio
+  useEffect(() => {
+    const resolveDomain = async () => {
+      try {
+        const hostname = window.location.hostname;
+        
+        // Dominios base del SaaS
+        const saasDomains = ['localhost', 'nexusgarage.vercel.app', 'nexusgarage.com'];
+        if (saasDomains.includes(hostname)) {
+          setIsSaasDomain(true);
+          setResolvingDomain(false);
+          return;
+        }
+
+        // Consultar configuración del taller por dominio
+        const config = await fetchDomainConfig(hostname);
+        if (config) {
+          setTenantConfig(config);
+          setIsSaasDomain(false);
+        } else {
+          // Si no existe el dominio, mostramos el SaaS o un 404
+          setIsSaasDomain(true);
+        }
+      } catch (err) {
+        console.error('Error resolving domain:', err);
+        setIsSaasDomain(true);
+      } finally {
+        setResolvingDomain(false);
+      }
+    };
+
+    resolveDomain();
+  }, [fetchDomainConfig]);
 
   // Dynamic Favicon Update
   useEffect(() => {
@@ -124,7 +169,16 @@ export default function App() {
   }, [isMonitorMode, activeTab, refreshData]);
 
   useEffect(() => {
-    // Detect public branding from URL slug (?t=slug)
+    // Detect public branding from URL slug (?t=slug) o por dominio
+    if (tenantConfig) {
+      setPublicBranding(settings || {
+        workshop_name: tenantConfig.nombre,
+        theme_menu_highlight: tenantConfig.color_principal || '#f97316',
+        logo_url: tenantConfig.logo_url
+      });
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const slug = params.get('t') || 'lubrivespucio';
     if (slug) {
@@ -143,7 +197,7 @@ export default function App() {
         });
       });
     }
-  }, [fetchPublicSettingsBySlug]);
+  }, [fetchPublicSettingsBySlug, tenantConfig, settings]);
 
   // Sync logged-in settings explicitly with public branding
   // so changes hit the LandingPage directly without reload
@@ -284,11 +338,30 @@ export default function App() {
     }
   };
 
+  if (resolvingDomain) {
+    return <SkeletonLoader />;
+  }
+
+  // Lógica de Vistas Segregada
+  
+  // 1. Caso: Dominio Principal del SaaS (Nexus Garage)
+  if (isSaasDomain && view === 'landing') {
+    return (
+      <LandingNexus 
+        onAdminAccess={() => {
+          // Forzar vista de dashboard para mostrar login si no hay sesión
+          setView('dashboard');
+        }} 
+      />
+    );
+  }
+
+  // 2. Caso: Portal de Taller (Subdominio o Dominio de Taller)
   if (view === 'landing') {
     return (
       <>
         <LandingPage 
-          onPortalAccess={() => {}} // No longer used as separate view
+          onPortalAccess={() => {}} 
           onAdminAccess={handleLogin}
           onCustomerSearch={handleCustomerSearch}
           onOpenBooking={() => setIsBookingModalOpen(true)}
