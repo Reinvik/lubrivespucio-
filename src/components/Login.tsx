@@ -180,9 +180,7 @@ export function Login({ onLogin, onCustomerSearch, onOpenBooking, branding }: Lo
                 }}
               />
             ) : (
-              <div className="w-24 h-24 bg-zinc-900 rounded-[2rem] flex items-center justify-center border border-zinc-800 shadow-2xl">
-                <img src="/logo3.png" alt="Vespucio Logo" className="w-16 h-16 object-contain" />
-              </div>
+              <img src="/logo3.png" alt="Vespucio Logo" className="w-[120px] h-auto object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
             )}
           </div>
           

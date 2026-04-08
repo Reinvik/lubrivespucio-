@@ -53,7 +53,7 @@ const ServiceDetailModal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#070b14]/90 backdrop-blur-2xl"
+            className="absolute inset-0 bg-[#000000]/90 backdrop-blur-2xl"
           />
           
           <motion.div
@@ -194,7 +194,7 @@ const AdminLoginModal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#070b14]/90 backdrop-blur-xl"
+            className="absolute inset-0 bg-[#000000]/90 backdrop-blur-xl"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 40, rotateX: 10 }}
@@ -393,7 +393,7 @@ const LandingPage = ({
     theme_primary_color: '#f97316',
     theme_secondary_color: '#3b82f6',
     theme_accent_color: '#f97316',
-    theme_background_color: '#070b14',
+    theme_background_color: '#000000',
     theme_border_radius: '3xl',
     ...((branding?.landing_config) || {}),
     // Extra fallback overrides using top-level settings fields for immediate sync
@@ -584,7 +584,7 @@ const LandingPage = ({
       </div>
 
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-[#070b14]/80 backdrop-blur-xl border-b border-white/5">
+      <nav className="fixed top-0 w-full z-50 bg-[#000000]/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
@@ -622,7 +622,7 @@ const LandingPage = ({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="md:hidden bg-[#070b14] border-b border-white/10 overflow-hidden"
+              className="md:hidden bg-[#000000] border-b border-white/10 overflow-hidden"
             >
               <div className="px-6 py-8 flex flex-col gap-6">
                 <a href="#servicios" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Servicios</a>
@@ -761,16 +761,16 @@ const LandingPage = ({
                 alt="Workshop" 
                 className="w-full h-full object-cover" 
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#070b14] via-[#070b14]/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#000000] via-[#000000]/20 to-transparent" />
               
               <div className="absolute bottom-10 left-10 right-10 p-8 rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 space-y-4">
                 <div className="flex -space-x-4">
                   {[1,2,3,4].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-[#070b14] bg-slate-800 overflow-hidden">
+                    <div key={i} className="w-10 h-10 rounded-full border-2 border-[#000000] bg-slate-800 overflow-hidden">
                       <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="User" />
                     </div>
                   ))}
-                  <div className="w-10 h-10 rounded-full border-2 border-[#070b14] flex items-center justify-center text-[10px] font-black" style={{ backgroundColor: lp.theme_primary_color }}>
+                  <div className="w-10 h-10 rounded-full border-2 border-[#000000] flex items-center justify-center text-[10px] font-black" style={{ backgroundColor: lp.theme_primary_color }}>
                     +2K
                   </div>
                 </div>
@@ -910,7 +910,7 @@ const LandingPage = ({
               </div>
 
               <div className="p-1 rounded-[32px]" style={{ background: `linear-gradient(to right, ${lp.theme_primary_color}, ${lp.theme_secondary_color || lp.theme_primary_color})` }}>
-                <div className="bg-[#070b14] rounded-[30px] p-8 flex items-center justify-between">
+                <div className="bg-[#000000] rounded-[30px] p-8 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Atención Telefónica</p>
                     <p className="text-2xl font-black text-white">{lp.location_phone}</p>
@@ -940,7 +940,7 @@ const LandingPage = ({
                   alt="Ubicación Lubricentro Vespucio" 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#070b14] via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#000000] via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
                 
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
                   <div className="bg-white/10 backdrop-blur-xl px-8 py-4 rounded-3xl border border-white/20 flex items-center gap-3 shadow-2xl">

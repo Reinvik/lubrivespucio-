@@ -343,7 +343,37 @@ export function SalaVentas({ parts, tickets, onAddSalaVenta, fetchSalaVentas, on
 
           {/* Search */}
           <div className="px-6 pt-5 relative">
-            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 block">Buscar Producto</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block">Buscar Producto</label>
+              <button 
+                type="button"
+                onClick={() => {
+                  const name = window.prompt("Ingrese el nombre del concepto manual:");
+                  if (!name?.trim()) return;
+                  const priceStr = window.prompt("Ingrese el valor (precio neto):");
+                  const price = parseInt(priceStr || "0", 10);
+                  if (isNaN(price) || price < 0) {
+                     alert("Precio inválido");
+                     return;
+                  }
+                  
+                  const fakePart = {
+                    id: `MANUAL-${Date.now()}`,
+                    name: name.trim(),
+                    price,
+                    stock: 999,
+                    category: 'Manual',
+                    company_id: ''
+                  };
+                  
+                  // @ts-ignore
+                  addToCart(fakePart);
+                }}
+                className="text-xs font-bold px-3 py-1 rounded-lg border bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 transition-colors flex items-center gap-1 shadow-sm"
+              >
+                <Plus className="w-3 h-3" /> Concepto Manual
+              </button>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <input
